@@ -73,15 +73,19 @@ final class AudioEngine {
         processor = AudioProcessor(bus: bus)
     }
 
-    func refreshPermission() async {
-        let granted = await SystemAudioCapture.permissionGranted()
-        let state: PermissionState = granted ? .granted : .denied
+    /// Non-prompting refresh (safe to call at launch).
+    func refreshPermission() {
+        let state: PermissionState = SystemAudioCapture.permissionGranted() ? .granted : .denied
         if state != permission { permission = state; onPermissionChange?(state) }
     }
 
-    func start() async {
+    /// Start capture. Pass `promptIfNeeded: true` only from an explicit user
+    /// action (onboarding button / warning banner) so the system dialog is never
+    /// sprung at launch.
+    func start(promptIfNeeded: Bool = false) async {
         guard !isRunning else { return }
-        let granted = await SystemAudioCapture.permissionGranted()
+        var granted = SystemAudioCapture.permissionGranted()
+        if !granted && promptIfNeeded { granted = SystemAudioCapture.requestPermission() }
         permission = granted ? .granted : .denied
         onPermissionChange?(permission)
         guard granted else {

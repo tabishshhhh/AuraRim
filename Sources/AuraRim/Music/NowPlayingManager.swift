@@ -9,6 +9,8 @@ final class NowPlayingManager {
     private var pollTask: Task<Void, Never>?
     private var lastSignature: String?
     private var colorCache = ColorCache()
+    private var artworkSignature: String?
+    private var artworkData: Data?
 
     /// Fired when the current track changes (or clears).
     var onTrack: ((TrackMetadata?) -> Void)?
@@ -52,22 +54,29 @@ final class NowPlayingManager {
 
     private func handle(_ track: TrackMetadata?) async {
         guard let track else {
-            if lastSignature != nil { lastSignature = nil; onTrack?(nil) }
+            if lastSignature != nil { lastSignature = nil; artworkSignature = nil; artworkData = nil; onTrack?(nil) }
             return
         }
         let sig = track.signature
-        onTrack?(track)
+
+        // Emit the track with any artwork we already have for it.
+        var enriched = track
+        if sig == artworkSignature { enriched.artworkData = artworkData }
+        onTrack?(enriched)
+
         guard sig != lastSignature else { return }
         lastSignature = sig
 
-        // Track changed — resolve colors (cache first, spec §52).
-        if let cached = colorCache.get(sig) {
-            onColors?(cached)
-            return
-        }
+        // Track changed — fetch artwork once, then attach it + resolve colors.
         guard let provider = providers.first(where: { $0.bundleIdentifier == track.bundleIdentifier }),
-              let data = await provider.artwork(),
-              let image = NSImage(data: data)?.cgImageForColors(),
+              let data = await provider.artwork() else { return }
+        artworkSignature = sig
+        artworkData = data
+        enriched.artworkData = data
+        onTrack?(enriched)
+
+        if let cached = colorCache.get(sig) { onColors?(cached); return }
+        guard let image = NSImage(data: data)?.cgImageForColors(),
               let colors = ArtworkColorExtractor.extract(from: image) else { return }
         colorCache.set(sig, colors)
         onColors?(colors)

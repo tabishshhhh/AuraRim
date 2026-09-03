@@ -6,7 +6,7 @@ struct ControlPanelActions {
     var checkForUpdates: () -> Void = {}
     var quit: () -> Void = {}
     var openAudioSettings: () -> Void = {}
-    var activateSource: (TrackMetadata) -> Void = { _ in }
+    var showPlayer: () -> Void = {}
 }
 
 /// The primary menu-bar experience (spec §5, §34). Minimal, translucent, native,
@@ -62,13 +62,14 @@ struct ControlPanelView: View {
                 Text(track.sourceName).font(.caption2).foregroundStyle(.tertiary)
             }
             Spacer()
-            Image(systemName: track.playbackState == .playing ? "waveform" : "pause.fill")
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
                 .foregroundStyle(.secondary).font(.caption)
         }
         .padding(10)
         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .contentShape(Rectangle())
-        .onTapGesture { actions.activateSource(track) }
+        .onTapGesture { actions.showPlayer() }
+        .help("Open player")
     }
 
     @ViewBuilder private func artwork(_ track: TrackMetadata) -> some View {
@@ -145,7 +146,7 @@ struct ControlPanelView: View {
                     Text("System audio access is required for Music Sync.")
                         .font(.caption)
                     Spacer()
-                    Button("Open Settings", action: actions.openAudioSettings)
+                    Button("Allow", action: actions.openAudioSettings)
                         .buttonStyle(.link).font(.caption)
                 }
                 .padding(8)

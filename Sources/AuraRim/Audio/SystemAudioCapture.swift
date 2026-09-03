@@ -2,6 +2,7 @@ import Foundation
 import ScreenCaptureKit
 import CoreMedia
 import AVFoundation
+import CoreGraphics
 
 /// Captures audio produced by the Mac itself via ScreenCaptureKit (spec §13).
 /// This is *system* audio — never the microphone. Emits mono Float frames to a
@@ -19,14 +20,15 @@ final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate, @unc
         self.sink = sink
     }
 
-    /// Returns true if screen-recording content is reachable (permission granted).
-    static func permissionGranted() async -> Bool {
-        do {
-            _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-            return true
-        } catch {
-            return false
-        }
+    /// Non-prompting permission check (does not show the system dialog).
+    static func permissionGranted() -> Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
+    /// Explicitly request permission (shows the system dialog once).
+    @discardableResult
+    static func requestPermission() -> Bool {
+        CGRequestScreenCaptureAccess()
     }
 
     func start() async throws {

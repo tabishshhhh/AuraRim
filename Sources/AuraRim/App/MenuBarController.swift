@@ -22,8 +22,11 @@ final class MenuBarController {
 
         popover.behavior = .transient
         popover.animates = true
-        popover.contentViewController = NSHostingController(
+        let hosting = NSHostingController(
             rootView: ControlPanelView(state: appState, actions: actions))
+        // Let the popover track the SwiftUI content's height so nothing clips.
+        hosting.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = hosting
     }
 
     @objc private func togglePopover() {

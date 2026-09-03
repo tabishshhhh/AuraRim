@@ -29,7 +29,7 @@ final class RimController {
         ensureDefaultSelection()
         observe()
         nowPlaying.start()
-        Task { await audio.refreshPermission() }
+        audio.refreshPermission()
     }
 
     // MARK: Wiring
@@ -146,8 +146,9 @@ final class RimController {
 
     func requestAudioPermissionFlow() {
         Task {
-            await audio.refreshPermission()
-            if appState.audioPermission != .granted { await audio.start() } // triggers TCC prompt
+            await audio.start(promptIfNeeded: true)   // explicit user action → prompt once
+            // If macOS won't show the dialog (already denied), guide to Settings.
+            if appState.audioPermission == .denied { SystemSettingsPane.openScreenRecording() }
         }
     }
 

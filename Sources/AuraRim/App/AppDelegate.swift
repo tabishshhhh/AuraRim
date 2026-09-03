@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updater: UpdateManaging = StubUpdateManager()
     private var settingsWindow: NSWindow?
     private var onboardingWindow: NSWindow?
+    private var player: NowPlayingController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState = AppState()
@@ -24,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Log.app.error("Metal unavailable — rim rendering disabled")
         }
 
+        player = NowPlayingController(appState: appState)
         menuBar = MenuBarController(appState: appState, actions: makeActions())
 
         if !appState.onboardingComplete {
@@ -44,13 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openSettings: { [weak self] in self?.showSettings() },
             checkForUpdates: { [weak self] in self?.updater.checkForUpdates() },
             quit: { NSApp.terminate(nil) },
-            openAudioSettings: { SystemSettingsPane.openScreenRecording() },
-            activateSource: { track in
-                if let url = NSWorkspace.shared.urlForApplication(
-                    withBundleIdentifier: track.bundleIdentifier) {
-                    NSWorkspace.shared.openApplication(at: url, configuration: .init())
-                }
-            })
+            openAudioSettings: { [weak self] in self?.controller?.requestAudioPermissionFlow() },
+            showPlayer: { [weak self] in self?.player.show() })
     }
 
     private func applyDockPolicy() {
