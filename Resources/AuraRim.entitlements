@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Development entitlements. The app is NOT sandboxed during development so
+      ScreenCaptureKit audio capture and AppleScript automation work without the
+      extra sandbox temporary-exception dance.
+
+      For Mac App Store / hardened distribution, enable the sandbox and add:
+        com.apple.security.app-sandbox                     (true)
+        com.apple.security.automation.apple-events         (true, for music metadata)
+        com.apple.security.network.client                  (true, for artwork URLs / licensing / Sparkle)
+      ScreenCaptureKit works under the sandbox with the user's TCC grant.
+    -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+</dict>
+</plist>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>AuraRim</string>
+    <key>CFBundleDisplayName</key>
+    <string>AuraRim</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.aurarim.app</string>
+    <key>CFBundleExecutable</key>
+    <string>AuraRim</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <!-- Menu-bar accessory app: no Dock icon or main window by default (spec §4). -->
+    <key>LSUIElement</key>
+    <true/>
+    <!-- ScreenCaptureKit system-audio capture requires this usage string (spec §13). -->
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>AuraRim analyzes audio playing on your Mac to animate the rim. Audio is processed locally and is never recorded or uploaded.</string>
+    <!-- AppleScript automation for reading the current track/artwork (spec §12). -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>AuraRim reads the current song and album artwork to pick automatic colors. This is optional.</string>
+</dict>
+</plist>
