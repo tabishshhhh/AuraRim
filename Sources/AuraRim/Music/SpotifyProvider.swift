@@ -7,14 +7,19 @@ struct SpotifyProvider: MusicProvider {
 
     func isRunning() -> Bool { AppleScriptRunner.isRunning(bundleIdentifier: bundleIdentifier) }
 
-    func currentTrack() async -> TrackMetadata? {
+    @MainActor func currentTrack() async -> TrackMetadata? {
         guard isRunning() else { return nil }
         let script = """
         tell application "Spotify"
             if player state is stopped then return {"", "", "", "stopped", 0, 0, ""}
-            set t to current track
-            set st to (player state as text)
-            return {name of t, artist of t, album of t, st, (player position as real), ((duration of t) / 1000), (artwork url of t)}
+            set trackName to name of current track
+            set trackArtist to artist of current track
+            set trackAlbum to album of current track
+            set trackPos to player position
+            set trackDur to (duration of current track) / 1000
+            set artURL to artwork url of current track
+            set pstate to player state as text
+            return {trackName, trackArtist, trackAlbum, pstate, trackPos, trackDur, artURL}
         end tell
         """
         guard case let .success(desc) = await AppleScriptRunner.run(script),
@@ -34,7 +39,7 @@ struct SpotifyProvider: MusicProvider {
             artworkData: nil)
     }
 
-    func artwork() async -> Data? {
+    @MainActor func artwork() async -> Data? {
         guard isRunning() else { return nil }
         let script = """
         tell application "Spotify"

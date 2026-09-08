@@ -28,8 +28,11 @@ protocol MusicProvider: Sendable {
     var sourceName: String { get }
     var bundleIdentifier: String { get }
     func isRunning() -> Bool
-    func currentTrack() async -> TrackMetadata?
+    // Metadata queries run on the main actor: AppleScript / Apple Events and the
+    // Automation consent dialog are only reliable from the main thread, and the
+    // event descriptors they return are not Sendable.
+    @MainActor func currentTrack() async -> TrackMetadata?
     /// Fetch artwork for the currently playing track. Called only when the track
     /// signature changes (spec §51), so it can be relatively expensive.
-    func artwork() async -> Data?
+    @MainActor func artwork() async -> Data?
 }

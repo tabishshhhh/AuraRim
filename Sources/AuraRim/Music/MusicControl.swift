@@ -13,6 +13,7 @@ enum MusicControl {
         }
     }
 
+    @MainActor
     static func send(_ command: Command, bundleIdentifier: String) async {
         guard let app = appName(for: bundleIdentifier) else { return }
         _ = await AppleScriptRunner.run("tell application \"\(app)\" to \(command.rawValue)")
