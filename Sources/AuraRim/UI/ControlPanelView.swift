@@ -49,7 +49,8 @@ struct ControlPanelView: View {
                     ColorWheelPicker(title: "Primary", percent: primaryPercent, color: $state.primaryColor)
                     ColorWheelPicker(title: "Secondary", percent: secondaryPercent, color: $state.secondaryColor)
                 }
-                .padding(.top, 2)
+                .padding(14)
+                .glassCard(cornerRadius: 18)
             }
 
             displaySection
@@ -79,13 +80,9 @@ struct ControlPanelView: View {
             } label: {
                 Text(state.rimEnabled ? "Active" : "Off")
                     .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(
-                        Capsule().fill(state.rimEnabled
-                            ? Color.orange.opacity(0.18) : Color.secondary.opacity(0.15)))
-                    .overlay(Capsule().strokeBorder(state.rimEnabled
-                        ? Color.orange.opacity(0.5) : Color.secondary.opacity(0.3)))
                     .foregroundStyle(state.rimEnabled ? Color.orange : Color.secondary)
+                    .padding(.horizontal, 13).padding(.vertical, 6)
+                    .glassCard(cornerRadius: 20, tint: state.rimEnabled ? .orange : nil, interactive: true)
             }
             .buttonStyle(.plain)
             .help("Rim Lighting")
@@ -115,8 +112,7 @@ struct ControlPanelView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(8)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.secondary.opacity(0.1)))
+            .glassCard(cornerRadius: 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -170,8 +166,7 @@ struct ControlPanelView: View {
                         }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 9)
-                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.secondary.opacity(0.08)))
+                    .glassCard(cornerRadius: 10)
                     .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 1.5))
                 }

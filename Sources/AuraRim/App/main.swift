@@ -19,6 +19,27 @@ if let idx = CommandLine.arguments.firstIndex(of: "--render-test") {
     exit(ok ? 0 : 1)
 }
 
+// Debug/QA: fetch lyrics once and print, then exit.
+//   AuraRim --lyrics-test "Title" "Artist" ["Album"] [durationSeconds]
+if let idx = CommandLine.arguments.firstIndex(of: "--lyrics-test") {
+    let a = CommandLine.arguments
+    let title = a.count > idx + 1 ? a[idx + 1] : "Never Gonna Give You Up"
+    let artist = a.count > idx + 2 ? a[idx + 2] : "Rick Astley"
+    let album = a.count > idx + 3 ? a[idx + 3] : ""
+    let dur = a.count > idx + 4 ? Double(a[idx + 4]) ?? 0 : 213
+    let sem = DispatchSemaphore(value: 0)
+    Task.detached {
+        let lyrics = await LyricsProvider.fetch(title: title, artist: artist, album: album, duration: dur)
+        if let lyrics {
+            print("lines=\(lyrics.lines.count) synced=\(lyrics.isSynced)")
+            for l in lyrics.lines.prefix(4) { print("  [\(l.time.map { String(format: "%.2f", $0) } ?? "-")] \(l.text)") }
+        } else { print("NIL — fetch failed") }
+        sem.signal()
+    }
+    sem.wait()
+    exit(0)
+}
+
 // Debug/QA: render the panel + player UI to PNGs and exit.
 //   AuraRim --render-ui <dir>
 if let idx = CommandLine.arguments.firstIndex(of: "--render-ui") {

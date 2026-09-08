@@ -25,7 +25,9 @@ final class NowPlayingController {
     func show() {
         if panel == nil { build() }
         panel?.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
-        panel?.orderFrontRegardless()
+        // Make it key so the SwiftUI controls (Lyrics, transport) receive clicks.
+        NSApp.activate(ignoringOtherApps: true)
+        panel?.makeKeyAndOrderFront(nil)
     }
 
     func hide() {
@@ -37,9 +39,9 @@ final class NowPlayingController {
 
     private func build() {
         restoreFrame()
-        let panel = NSPanel(contentRect: compactFrame,
-                            styleMask: [.borderless, .nonactivatingPanel],
-                            backing: .buffered, defer: false)
+        let panel = PlayerPanel(contentRect: compactFrame,
+                                styleMask: [.borderless, .nonactivatingPanel],
+                                backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
@@ -125,4 +127,11 @@ final class NowPlayingController {
             compactFrame = CGRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
         }
     }
+}
+
+/// A borderless panel that can still become key so its SwiftUI controls
+/// (buttons, scroll views) receive clicks and events.
+final class PlayerPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
