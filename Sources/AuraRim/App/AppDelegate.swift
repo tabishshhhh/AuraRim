@@ -26,10 +26,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         player = NowPlayingController(appState: appState)
+        player.onOpenSettings = { [weak self] in self?.showSettings() }
         menuBar = MenuBarController(appState: appState, actions: makeActions())
 
         if !appState.onboardingComplete {
             showOnboarding()
+        }
+
+        // QA helpers to screenshot the UI without manual clicking.
+        if CommandLine.arguments.contains("--show-panel") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.menuBar.open() }
+        }
+        if CommandLine.arguments.contains("--show-player") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.player.show() }
         }
         Log.app.info("\(AppBrand.name, privacy: .public) launched")
     }
@@ -46,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             openSettings: { [weak self] in self?.showSettings() },
             checkForUpdates: { [weak self] in self?.updater.checkForUpdates() },
             quit: { NSApp.terminate(nil) },
-            openAudioSettings: { [weak self] in self?.controller?.requestAudioPermissionFlow() },
+            requestAudio: { [weak self] in self?.controller?.requestAudioPermissionFlow() },
             showPlayer: { [weak self] in self?.player.show() })
     }
 

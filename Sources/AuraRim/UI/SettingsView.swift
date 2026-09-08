@@ -45,7 +45,7 @@ struct SettingsView: View {
 
     private var music: some View {
         Form {
-            Toggle("Automatic album colors", isOn: $state.albumColorEnabled)
+            Toggle("Override album color", isOn: $state.overrideAlbumColor)
             LabeledContent("System Audio") {
                 switch state.audioPermission {
                 case .granted: Label("Granted", systemImage: "checkmark.circle.fill").foregroundStyle(.green)

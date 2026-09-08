@@ -73,12 +73,14 @@ enum RimShaderSource {
             pulse += u.silence * b * 0.12;
             glowR *= 1.0 + u.silence * b * 0.15;
             rot += u.idlePhase * 0.02 * u.silence;
-        } else if (u.animationMode == 1) {          // Idle breathing
+        } else if (u.animationMode == 2) {          // No Animation: static
+            // unchanged
+        } else {                                    // Default / Idle: breathing
             float b = 0.5 + 0.5 * sin(u.idlePhase);
             pulse = 1.0 + b * 0.14;
             glowR *= 1.0 + b * 0.22;
             rot += u.idlePhase * 0.03;
-        }                                           // Static: unchanged
+        }
 
         // Rim core + soft bloom (spec §65).
         float core = 1.0 - smoothstep(0.0, max(thick, 0.5), dist);

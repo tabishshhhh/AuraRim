@@ -29,6 +29,13 @@ final class MenuBarController {
         popover.contentViewController = hosting
     }
 
+    /// Programmatically open the popover (used for QA screenshots).
+    func open() {
+        guard let button = statusItem.button, !popover.isShown else { return }
+        updateIcon()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    }
+
     @objc private func togglePopover() {
         guard let button = statusItem.button else { return }
         if popover.isShown {

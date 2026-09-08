@@ -10,8 +10,11 @@ final class NowPlayingController {
     private var panel: NSPanel?
     private var hosting: NSHostingController<NowPlayingPlayerView>?
     private var isExpanded = false
-    private var compactFrame = CGRect(x: 0, y: 0, width: 300, height: 430)
+    private var compactFrame = CGRect(x: 0, y: 0, width: 720, height: 600)
     private let frameKey = "playerWindowFrameCompact"
+
+    /// Set by AppDelegate to open the Settings window from the player toolbar.
+    var onOpenSettings: () -> Void = {}
 
     init(appState: AppState) { self.appState = appState }
 
@@ -55,14 +58,31 @@ final class NowPlayingController {
     }
 
     private func makeView() -> NowPlayingPlayerView {
-        NowPlayingPlayerView(
-            state: appState,
-            isExpanded: isExpanded,
-            onToggleExpand: { [weak self] in self?.toggleExpand() },
-            onClose: { [weak self] in self?.hide() },
-            onPlayPause: { [weak self] in self?.transport(.playPause) },
-            onNext: { [weak self] in self?.transport(.next) },
-            onPrev: { [weak self] in self?.transport(.previous) })
+        var a = PlayerActions()
+        a.playPause = { [weak self] in self?.transport(.playPause) }
+        a.next = { [weak self] in self?.transport(.next) }
+        a.prev = { [weak self] in self?.transport(.previous) }
+        a.seekBack = { [weak self] in self?.seek(-15) }
+        a.seekForward = { [weak self] in self?.seek(15) }
+        a.toggleExpand = { [weak self] in self?.toggleExpand() }
+        a.close = { [weak self] in self?.hide() }
+        a.toggleAlbumColors = { [weak self] in self?.appState.overrideAlbumColor.toggle() }
+        a.cycleAnimation = { [weak self] in self?.cycleAnimation() }
+        a.toggleRim = { [weak self] in self?.appState.rimEnabled.toggle() }
+        a.openSettings = { [weak self] in self?.onOpenSettings() }
+        return NowPlayingPlayerView(state: appState, isExpanded: isExpanded, actions: a)
+    }
+
+    private func seek(_ seconds: Int) {
+        guard let id = appState.currentTrack?.bundleIdentifier else { return }
+        Task { await MusicControl.seek(by: seconds, bundleIdentifier: id) }
+    }
+
+    private func cycleAnimation() {
+        let all = AnimationMode.allCases
+        if let i = all.firstIndex(of: appState.animationMode) {
+            appState.animationMode = all[(i + 1) % all.count]
+        }
     }
 
     private func toggleExpand() {
@@ -99,9 +119,10 @@ final class NowPlayingController {
             let r = NSRectFromString(s)
             if r.width > 100 && r.height > 100 { compactFrame = r; return }
         }
-        // Default: upper-right of the main screen.
+        // Default: centered on the main screen.
         if let vf = NSScreen.main?.visibleFrame {
-            compactFrame = CGRect(x: vf.maxX - 320, y: vf.maxY - 450, width: 300, height: 430)
+            let w: CGFloat = 720, h: CGFloat = 600
+            compactFrame = CGRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
         }
     }
 }

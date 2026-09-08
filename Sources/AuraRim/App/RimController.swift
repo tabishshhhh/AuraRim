@@ -54,7 +54,7 @@ final class RimController {
         nowPlaying.onColors = { [weak self] colors in
             guard let self else { return }
             self.appState.albumColors = colors
-            if self.appState.albumColorEnabled {
+            if !self.appState.overrideAlbumColor {
                 self.colorEngine.transition(to: colors.primary, secondary: colors.secondary, duration: 0.7)
             }
         }
@@ -83,9 +83,9 @@ final class RimController {
 
     private func observe() {
         withObservationTracking {
-            _ = (appState.rimEnabled, appState.animationMode, appState.thickness,
+            _ = (appState.rimEnabled, appState.animationMode, appState.gradientMode, appState.thickness,
                  appState.glow, appState.brightness, appState.colorBalance,
-                 appState.albumColorEnabled, appState.primaryColor, appState.secondaryColor,
+                 appState.overrideAlbumColor, appState.primaryColor, appState.secondaryColor,
                  appState.notchEnabled, appState.showOverFullscreen, appState.selectedDisplayUUIDs)
             rebuild()
         } onChange: { [weak self] in

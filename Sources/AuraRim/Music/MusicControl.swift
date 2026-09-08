@@ -18,4 +18,12 @@ enum MusicControl {
         guard let app = appName(for: bundleIdentifier) else { return }
         _ = await AppleScriptRunner.run("tell application \"\(app)\" to \(command.rawValue)")
     }
+
+    /// Seek relative to the current position, in seconds (can be negative).
+    @MainActor
+    static func seek(by seconds: Int, bundleIdentifier: String) async {
+        guard let app = appName(for: bundleIdentifier) else { return }
+        _ = await AppleScriptRunner.run(
+            "tell application \"\(app)\" to set player position to (player position + \(seconds))")
+    }
 }

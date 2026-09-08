@@ -11,10 +11,10 @@ struct Preferences {
     }
 
     enum Key: String {
-        case rimEnabled, animationMode, thickness, glow, brightness
+        case rimEnabled, animationMode, gradientMode, thickness, glow, brightness
         case colorSource, primaryColor, secondaryColor, colorBalance
-        case albumColorEnabled, notchEnabled, showOverFullscreen
-        case launchAtLogin, showInDock, startRimOnLaunch
+        case overrideAlbumColor, notchEnabled, showOverFullscreen
+        case launchAtLogin, showInDock, startRimOnLaunch, lockScreenPlayer
         case selectedDisplayIDs, playerWindowEnabled, playerWindowFrame
         case onboardingComplete, automaticUpdates
     }
@@ -23,12 +23,14 @@ struct Preferences {
         defaults.register(defaults: [
             Key.rimEnabled.rawValue: true,
             Key.animationMode.rawValue: AnimationMode.musicSync.rawValue,
+            Key.gradientMode.rawValue: GradientMode.two.rawValue,
             Key.thickness.rawValue: 14.0,          // logical px, range 2–40
             Key.glow.rawValue: 55.0,               // 0–100 normalized
             Key.brightness.rawValue: 85.0,         // 0–100
             Key.colorSource.rawValue: ColorSource.album.rawValue,
             Key.colorBalance.rawValue: 50.0,       // 0–100, 50 = even
-            Key.albumColorEnabled.rawValue: true,
+            Key.overrideAlbumColor.rawValue: false, // false = follow album art
+            Key.lockScreenPlayer.rawValue: false,
             Key.notchEnabled.rawValue: true,
             Key.showOverFullscreen.rawValue: false,
             Key.launchAtLogin.rawValue: false,

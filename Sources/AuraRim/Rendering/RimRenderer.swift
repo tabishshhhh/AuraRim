@@ -64,15 +64,10 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
         u.primaryColor = c.primary.simd
         u.secondaryColor = c.secondary.simd
 
-        switch c.animationMode {
-        case .musicSync:
-            u.animationMode = 0
+        u.animationMode = Int32(c.animationMode.rawValue)
+        if c.animationMode == .musicSync {
             u.pulseStrength = min(1, a.beat * 0.8 + a.amplitude * 0.4)
             u.silence = a.silence
-        case .idle:
-            u.animationMode = 1
-        case .static:
-            u.animationMode = 2
         }
 
         if c.notchEnabled && c.notch.hasNotch {

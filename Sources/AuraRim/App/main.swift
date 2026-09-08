@@ -19,6 +19,16 @@ if let idx = CommandLine.arguments.firstIndex(of: "--render-test") {
     exit(ok ? 0 : 1)
 }
 
+// Debug/QA: render the panel + player UI to PNGs and exit.
+//   AuraRim --render-ui <dir>
+if let idx = CommandLine.arguments.firstIndex(of: "--render-ui") {
+    let dir = CommandLine.arguments.count > idx + 1 ? CommandLine.arguments[idx + 1] : "."
+    let appTmp = NSApplication.shared            // ImageRenderer needs an app context
+    _ = appTmp
+    MainActor.assumeIsolated { UISnapshot.renderAll(to: dir) }
+    exit(0)
+}
+
 // Entry point. A menu-bar (accessory) app: no Dock icon or main window by
 // default (spec §4). The delegate builds everything at launch.
 let app = NSApplication.shared

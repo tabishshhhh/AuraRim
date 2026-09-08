@@ -13,13 +13,15 @@ final class AppState {
 
     var rimEnabled: Bool { didSet { prefs.set(rimEnabled, .rimEnabled) } }
     var animationMode: AnimationMode { didSet { prefs.set(animationMode.rawValue, .animationMode) } }
+    var gradientMode: GradientMode { didSet { prefs.set(gradientMode.rawValue, .gradientMode) } }
 
     var thickness: Double { didSet { prefs.set(thickness, .thickness) } }      // 2…40
     var glow: Double { didSet { prefs.set(glow, .glow) } }                      // 0…100
     var brightness: Double { didSet { prefs.set(brightness, .brightness) } }    // 0…100
     var colorBalance: Double { didSet { prefs.set(colorBalance, .colorBalance) } } // 0…100
 
-    var albumColorEnabled: Bool { didSet { prefs.set(albumColorEnabled, .albumColorEnabled) } }
+    /// When true, use the manual primary/secondary colors instead of album art.
+    var overrideAlbumColor: Bool { didSet { prefs.set(overrideAlbumColor, .overrideAlbumColor) } }
     var primaryColor: ColorValue { didSet { prefs.set(primaryColor, .primaryColor) } }
     var secondaryColor: ColorValue { didSet { prefs.set(secondaryColor, .secondaryColor) } }
 
@@ -28,7 +30,9 @@ final class AppState {
 
     var showInDock: Bool { didSet { prefs.set(showInDock, .showInDock) } }
     var launchAtLogin: Bool { didSet { prefs.set(launchAtLogin, .launchAtLogin) } }
+    var lockScreenPlayer: Bool { didSet { prefs.set(lockScreenPlayer, .lockScreenPlayer) } }
     var playerWindowEnabled: Bool { didSet { prefs.set(playerWindowEnabled, .playerWindowEnabled) } }
+    var automaticUpdates: Bool { didSet { prefs.set(automaticUpdates, .automaticUpdates) } }
 
     var onboardingComplete: Bool { didSet { prefs.set(onboardingComplete, .onboardingComplete) } }
 
@@ -48,28 +52,35 @@ final class AppState {
         self.prefs = prefs
         rimEnabled = prefs.bool(.rimEnabled)
         animationMode = AnimationMode(rawValue: prefs.int(.animationMode)) ?? .musicSync
+        gradientMode = GradientMode(rawValue: prefs.int(.gradientMode)) ?? .two
         thickness = prefs.double(.thickness)
         glow = prefs.double(.glow)
         brightness = prefs.double(.brightness)
         colorBalance = prefs.double(.colorBalance)
-        albumColorEnabled = prefs.bool(.albumColorEnabled)
+        overrideAlbumColor = prefs.bool(.overrideAlbumColor)
         primaryColor = prefs.color(.primaryColor, default: .vibrantViolet)
         secondaryColor = prefs.color(.secondaryColor, default: .coolBlue)
         notchEnabled = prefs.bool(.notchEnabled)
         showOverFullscreen = prefs.bool(.showOverFullscreen)
         showInDock = prefs.bool(.showInDock)
         launchAtLogin = prefs.bool(.launchAtLogin)
+        lockScreenPlayer = prefs.bool(.lockScreenPlayer)
         playerWindowEnabled = prefs.bool(.playerWindowEnabled)
+        automaticUpdates = prefs.bool(.automaticUpdates)
         onboardingComplete = prefs.bool(.onboardingComplete)
         selectedDisplayUUIDs = prefs.displayUUIDs()
     }
 
     /// The colors the rim should currently target, resolving album vs. manual
-    /// (spec §11). Album colors win only when enabled and available.
+    /// (spec §11). Album colors are used unless the user overrides them. A
+    /// one-color gradient mirrors the primary into the secondary slot.
     var targetColors: (primary: ColorValue, secondary: ColorValue) {
-        if albumColorEnabled, let a = albumColors {
-            return a
+        let base: (primary: ColorValue, secondary: ColorValue)
+        if !overrideAlbumColor, let a = albumColors {
+            base = a
+        } else {
+            base = (primaryColor, secondaryColor)
         }
-        return (primaryColor, secondaryColor)
+        return gradientMode == .one ? (base.primary, base.primary) : base
     }
 }
