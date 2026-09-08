@@ -34,31 +34,27 @@ struct LyricsView: View {
 
     @ViewBuilder private func content(_ lyrics: Lyrics) -> some View {
         if lyrics.isSynced {
-            TimelineView(.animation(minimumInterval: 0.15)) { ctx in
+            TimelineView(.animation(minimumInterval: 0.1)) { ctx in
                 let now = estimatedTime(at: ctx.date)
-                let activeIndex = lyrics.lines.lastIndex { ($0.time ?? .infinity) <= now }
+                let activeIndex = lyrics.lines.lastIndex { ($0.time ?? .infinity) <= now } ?? 0
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
                             ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { i, line in
-                                Text(line.text.isEmpty ? "♪" : line.text)
-                                    .font(.system(size: 21, weight: i == activeIndex ? .bold : .semibold))
-                                    .foregroundStyle(i == activeIndex ? .white : .white.opacity(0.32))
-                                    .blur(radius: i == activeIndex ? 0 : 0.3)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .animation(.easeInOut(duration: 0.3), value: activeIndex)
+                                lyricLine(line.text, active: i == activeIndex)
                                     .id(i)
                             }
                         }
-                        .padding(.vertical, 90).padding(.horizontal, 4)
+                        .padding(.vertical, 130).padding(.horizontal, 6)
                     }
                     .mask(LinearGradient(colors: [.clear, .black, .black, .clear],
                                          startPoint: .top, endPoint: .bottom))
                     .onChange(of: activeIndex) { _, idx in
-                        if let idx { withAnimation(.spring(response: 0.5, dampingFraction: 0.9)) {
+                        withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
                             proxy.scrollTo(idx, anchor: .center)
-                        } }
+                        }
                     }
+                    .onAppear { proxy.scrollTo(activeIndex, anchor: .center) }
                 }
             }
         } else {
@@ -75,6 +71,18 @@ struct LyricsView: View {
                 .padding(24)
             }
         }
+    }
+
+    /// Apple-Music-style line: big & bold; the active line pops larger and
+    /// bright white while neighbors stay dimmed. Scale/opacity animate smoothly.
+    private func lyricLine(_ text: String, active: Bool) -> some View {
+        Text(text.isEmpty ? "♪" : text)
+            .font(.system(size: 30, weight: .heavy))
+            .foregroundStyle(active ? .white : .white.opacity(0.28))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .scaleEffect(active ? 1.0 : 0.86, anchor: .leading)
+            .padding(.vertical, 10)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: active)
     }
 
     private func estimatedTime(at date: Date) -> TimeInterval {

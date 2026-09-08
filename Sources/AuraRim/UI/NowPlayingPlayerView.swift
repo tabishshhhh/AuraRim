@@ -66,19 +66,21 @@ struct NowPlayingPlayerView: View {
     }
 
     private var lyricsLayout: some View {
-        HStack(alignment: .center, spacing: 22) {
-            VStack(spacing: 16) {
+        HStack(alignment: .center, spacing: 20) {
+            VStack(spacing: 14) {
                 artwork
                 titleBlock
                 transport
                 lyricsButton
             }
-            .frame(width: 250)
+            .frame(width: 210)
             LyricsView(state: state)
+                .padding(.horizontal, 22)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .glassCard(cornerRadius: 22)
                 .transition(.opacity)
         }
-        .padding(.vertical, 20)
+        .padding(.vertical, 18)
     }
 
     // MARK: Artwork (tap to enlarge over the controls)
@@ -125,13 +127,17 @@ struct NowPlayingPlayerView: View {
     }
 
     private var transport: some View {
-        HStack(spacing: showLyrics ? 8 : 14) {
-            HoverExpandButton(icon: "gobackward.15", label: "Back 15", action: actions.seekBack)
+        HStack(spacing: showLyrics ? 10 : 14) {
+            if !showLyrics {
+                HoverExpandButton(icon: "gobackward.15", label: "Back 15", action: actions.seekBack)
+            }
             HoverExpandButton(icon: "backward.fill", label: "Previous", action: actions.prev)
             HoverExpandButton(icon: isPlaying ? "pause.fill" : "play.fill",
                               label: isPlaying ? "Pause" : "Play", prominent: true, action: actions.playPause)
             HoverExpandButton(icon: "forward.fill", label: "Next", action: actions.next)
-            HoverExpandButton(icon: "goforward.15", label: "Forward 15", action: actions.seekForward)
+            if !showLyrics {
+                HoverExpandButton(icon: "goforward.15", label: "Forward 15", action: actions.seekForward)
+            }
         }
     }
 
