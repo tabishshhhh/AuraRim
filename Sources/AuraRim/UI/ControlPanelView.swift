@@ -21,6 +21,9 @@ struct ControlPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
+            if let track = state.currentTrack, track.playbackState != .stopped {
+                nowPlayingRow(track)
+            }
             Divider().opacity(0.4)
 
             dropdownRow("Gradient") {
@@ -87,6 +90,37 @@ struct ControlPanelView: View {
             .buttonStyle(.plain)
             .help("Rim Lighting")
         }
+    }
+
+    // MARK: Now playing (tap to open the big player)
+    private func nowPlayingRow(_ track: TrackMetadata) -> some View {
+        Button(action: actions.showPlayer) {
+            HStack(spacing: 10) {
+                Group {
+                    if let data = track.artworkData, let img = NSImage(data: data) {
+                        Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Rectangle().fill(.quaternary)
+                            .overlay(Image(systemName: "music.note").foregroundStyle(.secondary))
+                    }
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(track.title).font(.subheadline.weight(.medium)).lineLimit(1)
+                    Text(track.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.secondary.opacity(0.1)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Open player")
     }
 
     // MARK: Reusable rows
