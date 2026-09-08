@@ -67,7 +67,8 @@ struct ControlPanelView: View {
         }
         .padding(16)
         .frame(width: 320)
-        .animation(.easeInOut(duration: 0.2), value: state.overrideAlbumColor)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: state.overrideAlbumColor)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: state.currentTrack)
     }
 
     // MARK: Header

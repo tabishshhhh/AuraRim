@@ -9,71 +9,88 @@ struct PlayerActions {
     var seekForward: () -> Void = {}
     var toggleExpand: () -> Void = {}
     var close: () -> Void = {}
-    // Bottom toolbar
     var toggleAlbumColors: () -> Void = {}
     var cycleAnimation: () -> Void = {}
     var toggleRim: () -> Void = {}
     var openSettings: () -> Void = {}
 }
 
-/// The rich floating now-playing window (spec §23), matched to the reference:
-/// large rounded artwork on an album-tinted backdrop, five transport controls,
-/// a Lyrics pill, and a bottom toolbar of quick actions.
+/// The rich floating now-playing window (spec §23). Tap the cover to enlarge it
+/// over the transport controls; toggle Lyrics for a side-by-side view; controls
+/// expand into labeled pills on hover. Everything animates with springs.
 struct NowPlayingPlayerView: View {
     @Bindable var state: AppState
     var isExpanded: Bool
     var actions: PlayerActions
 
-    @State private var hovering = false
     @State private var showLyrics = false
+    @State private var coverEnlarged = false
+
     private var track: TrackMetadata? { state.currentTrack }
     private var isPlaying: Bool { track?.playbackState == .playing }
+    private let contentSpring = Animation.spring(response: 0.45, dampingFraction: 0.82)
 
     var body: some View {
         ZStack {
             backdrop
             VStack(spacing: 0) {
-                Spacer(minLength: isExpanded ? 40 : 24)
-                if showLyrics {
-                    LyricsView(state: state)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .transition(.opacity)
-                } else {
-                    artwork
-                    Spacer().frame(height: 22)
-                    titleBlock
+                Group {
+                    if showLyrics { lyricsLayout } else { centeredLayout }
                 }
-                Spacer().frame(height: 22)
-                transport
-                Spacer().frame(height: 18)
-                lyricsButton
-                Spacer(minLength: isExpanded ? 40 : 24)
-                toolbar
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                toolbar.padding(.bottom, 20)
             }
-            .padding(.horizontal, 28)
-            .padding(.bottom, 22)
-            .animation(.easeInOut(duration: 0.25), value: showLyrics)
+            .padding(.horizontal, 24)
             closeButton
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
         .clipShape(RoundedRectangle(cornerRadius: isExpanded ? 0 : 16, style: .continuous))
+        .animation(contentSpring, value: showLyrics)
+        .animation(contentSpring, value: coverEnlarged)
     }
 
-    // Album-tinted radial backdrop (like the reference's colored glow).
-    private var backdrop: some View {
-        let tint = (state.albumColors?.primary ?? state.primaryColor).color
-        return RadialGradient(colors: [tint.opacity(0.35), .black],
-                              center: .center, startRadius: 40, endRadius: 520)
-            .ignoresSafeArea()
+    // MARK: Layouts
+
+    private var centeredLayout: some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 12)
+            artwork
+            if !coverEnlarged {
+                titleBlock.transition(.opacity)
+                transport.transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+            lyricsButton
+            Spacer(minLength: 12)
+        }
     }
+
+    private var lyricsLayout: some View {
+        HStack(alignment: .center, spacing: 22) {
+            VStack(spacing: 16) {
+                artwork
+                titleBlock
+                transport
+                lyricsButton
+            }
+            .frame(width: 250)
+            LyricsView(state: state)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+        }
+        .padding(.vertical, 20)
+    }
+
+    // MARK: Artwork (tap to enlarge over the controls)
 
     private var artSize: CGFloat {
-        isExpanded ? min(460, (NSScreen.main?.frame.height ?? 900) * 0.4) : 300
+        if showLyrics { return 190 }
+        if coverEnlarged { return isExpanded ? 520 : 430 }
+        return isExpanded ? 360 : 300
     }
 
     private var artwork: some View {
-        ZStack {
+        Group {
             if let data = track?.artworkData, let img = NSImage(data: data) {
                 Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
             } else {
@@ -81,33 +98,26 @@ struct NowPlayingPlayerView: View {
                     .overlay(Image(systemName: "music.note")
                         .font(.system(size: artSize * 0.28)).foregroundStyle(.secondary))
             }
-            if hovering {
-                Color.black.opacity(0.25)
-                Button(action: actions.playPause) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 74, height: 74)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1.5))
-                }.buttonStyle(.plain)
-            }
         }
         .frame(width: artSize, height: artSize)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .strokeBorder(.white.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.12)))
         .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
-        .onHover { hovering = $0 }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !showLyrics else { return }
+            coverEnlarged.toggle()
+        }
+        .help(coverEnlarged ? "Shrink" : "Enlarge")
     }
 
     private var titleBlock: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 5) {
             Text(track?.title ?? "Nothing playing")
-                .font(.system(size: isExpanded ? 34 : 26, weight: .bold))
+                .font(.system(size: showLyrics ? 20 : 26, weight: .bold))
                 .lineLimit(1).minimumScaleFactor(0.5)
             Text(track?.artist ?? "")
-                .font(.system(size: isExpanded ? 20 : 16))
+                .font(.system(size: showLyrics ? 15 : 16))
                 .foregroundStyle(.secondary).lineLimit(1)
         }
         .foregroundStyle(.white)
@@ -115,12 +125,13 @@ struct NowPlayingPlayerView: View {
     }
 
     private var transport: some View {
-        HStack(spacing: isExpanded ? 34 : 26) {
-            circleButton("gobackward.15", size: 20, action: actions.seekBack)
-            circleButton("backward.fill", size: 22, action: actions.prev)
-            circleButton(isPlaying ? "pause.fill" : "play.fill", size: 28, big: true, action: actions.playPause)
-            circleButton("forward.fill", size: 22, action: actions.next)
-            circleButton("goforward.15", size: 20, action: actions.seekForward)
+        HStack(spacing: showLyrics ? 8 : 14) {
+            HoverExpandButton(icon: "gobackward.15", label: "Back 15", action: actions.seekBack)
+            HoverExpandButton(icon: "backward.fill", label: "Previous", action: actions.prev)
+            HoverExpandButton(icon: isPlaying ? "pause.fill" : "play.fill",
+                              label: isPlaying ? "Pause" : "Play", prominent: true, action: actions.playPause)
+            HoverExpandButton(icon: "forward.fill", label: "Next", action: actions.next)
+            HoverExpandButton(icon: "goforward.15", label: "Forward 15", action: actions.seekForward)
         }
     }
 
@@ -137,41 +148,25 @@ struct NowPlayingPlayerView: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: 14) {
-            toolButton("paintpalette", on: !state.overrideAlbumColor, action: actions.toggleAlbumColors)
-            toolButton("waveform", on: state.animationMode == .musicSync, action: actions.cycleAnimation)
-            toolButton("lightbulb", on: state.rimEnabled, action: actions.toggleRim)
-            Button(action: actions.openSettings) {
-                Text("Settings").font(.subheadline)
-                    .padding(.horizontal, 16).padding(.vertical, 9)
-                    .background(.white.opacity(0.08), in: Capsule())
-            }.buttonStyle(.plain).foregroundStyle(.white)
-            toolButton("display", on: false, action: actions.toggleExpand)
+        HStack(spacing: 12) {
+            HoverExpandButton(icon: "paintpalette", label: "Colors",
+                              active: !state.overrideAlbumColor, action: actions.toggleAlbumColors)
+            HoverExpandButton(icon: "waveform", label: "Sync",
+                              active: state.animationMode == .musicSync, action: actions.cycleAnimation)
+            HoverExpandButton(icon: "lightbulb", label: "Rim",
+                              active: state.rimEnabled, action: actions.toggleRim)
+            HoverExpandButton(icon: "gearshape", label: "Settings", action: actions.openSettings)
+            HoverExpandButton(icon: "arrow.up.left.and.arrow.down.right", label: "Full Screen",
+                              action: actions.toggleExpand)
         }
-        .foregroundStyle(.white)
     }
 
-    // MARK: pieces
-
-    private func circleButton(_ symbol: String, size: CGFloat, big: Bool = false,
-                              action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: big ? 62 : 48, height: big ? 62 : 48)
-                .background(.white.opacity(big ? 0.14 : 0.08), in: Circle())
-        }.buttonStyle(.plain)
-    }
-
-    private func toolButton(_ symbol: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(on ? Color.accentColor : .white.opacity(0.85))
-                .frame(width: 40, height: 40)
-                .background(.white.opacity(0.08), in: Circle())
-        }.buttonStyle(.plain)
+    private var backdrop: some View {
+        let tint = (state.albumColors?.primary ?? state.primaryColor).color
+        return RadialGradient(colors: [tint.opacity(0.35), .black],
+                              center: .center, startRadius: 40, endRadius: 560)
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.8), value: track?.signature)
     }
 
     private var closeButton: some View {

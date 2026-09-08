@@ -34,25 +34,28 @@ struct LyricsView: View {
 
     @ViewBuilder private func content(_ lyrics: Lyrics) -> some View {
         if lyrics.isSynced {
-            TimelineView(.animation(minimumInterval: 0.2)) { ctx in
+            TimelineView(.animation(minimumInterval: 0.15)) { ctx in
                 let now = estimatedTime(at: ctx.date)
                 let activeIndex = lyrics.lines.lastIndex { ($0.time ?? .infinity) <= now }
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 14) {
+                        VStack(alignment: .leading, spacing: 16) {
                             ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { i, line in
                                 Text(line.text.isEmpty ? "♪" : line.text)
-                                    .font(.system(size: 20, weight: i == activeIndex ? .bold : .regular))
-                                    .foregroundStyle(i == activeIndex ? .white : .white.opacity(0.4))
-                                    .multilineTextAlignment(.center)
-                                    .frame(maxWidth: .infinity)
+                                    .font(.system(size: 21, weight: i == activeIndex ? .bold : .semibold))
+                                    .foregroundStyle(i == activeIndex ? .white : .white.opacity(0.32))
+                                    .blur(radius: i == activeIndex ? 0 : 0.3)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .animation(.easeInOut(duration: 0.3), value: activeIndex)
                                     .id(i)
                             }
                         }
-                        .padding(.vertical, 120).padding(.horizontal, 20)
+                        .padding(.vertical, 90).padding(.horizontal, 4)
                     }
+                    .mask(LinearGradient(colors: [.clear, .black, .black, .clear],
+                                         startPoint: .top, endPoint: .bottom))
                     .onChange(of: activeIndex) { _, idx in
-                        if let idx { withAnimation(.easeInOut(duration: 0.3)) {
+                        if let idx { withAnimation(.spring(response: 0.5, dampingFraction: 0.9)) {
                             proxy.scrollTo(idx, anchor: .center)
                         } }
                     }
