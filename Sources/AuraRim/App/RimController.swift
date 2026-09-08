@@ -127,7 +127,9 @@ final class RimController {
         let desired = appState.rimEnabled && appState.animationMode == .musicSync
         guard desired != lastAudioDesired else { return }
         lastAudioDesired = desired
-        Task { desired ? await audio.start() : await audio.stop() }
+        // Music Sync needs system audio: prompt once when the user selects it.
+        // With stable code signing the grant persists, so this asks at most once.
+        Task { desired ? await audio.start(promptIfNeeded: true) : await audio.stop() }
     }
 
     // MARK: Sleep / wake

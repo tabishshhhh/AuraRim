@@ -25,6 +25,7 @@ struct NowPlayingPlayerView: View {
     var actions: PlayerActions
 
     @State private var hovering = false
+    @State private var showLyrics = false
     private var track: TrackMetadata? { state.currentTrack }
     private var isPlaying: Bool { track?.playbackState == .playing }
 
@@ -33,9 +34,15 @@ struct NowPlayingPlayerView: View {
             backdrop
             VStack(spacing: 0) {
                 Spacer(minLength: isExpanded ? 40 : 24)
-                artwork
-                Spacer().frame(height: 22)
-                titleBlock
+                if showLyrics {
+                    LyricsView(state: state)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.opacity)
+                } else {
+                    artwork
+                    Spacer().frame(height: 22)
+                    titleBlock
+                }
                 Spacer().frame(height: 22)
                 transport
                 Spacer().frame(height: 18)
@@ -45,6 +52,7 @@ struct NowPlayingPlayerView: View {
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 22)
+            .animation(.easeInOut(duration: 0.25), value: showLyrics)
             closeButton
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -117,14 +125,15 @@ struct NowPlayingPlayerView: View {
     }
 
     private var lyricsButton: some View {
-        Button(action: {}) {
-            Label("Lyrics", systemImage: "quote.bubble")
+        Button { showLyrics.toggle() } label: {
+            Label(showLyrics ? "Hide Lyrics" : "Lyrics", systemImage: "quote.bubble")
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 16).padding(.vertical, 8)
-                .background(.white.opacity(0.08), in: Capsule())
+                .background((showLyrics ? Color.accentColor.opacity(0.25) : .white.opacity(0.08)), in: Capsule())
                 .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
         }
-        .buttonStyle(.plain).foregroundStyle(.white.opacity(0.9))
+        .buttonStyle(.plain)
+        .foregroundStyle(showLyrics ? Color.accentColor : .white.opacity(0.9))
     }
 
     private var toolbar: some View {
