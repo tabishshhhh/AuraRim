@@ -35,6 +35,28 @@ enum GradientMode: Int, Codable, CaseIterable, Sendable {
     var title: String { self == .one ? "1 Color" : "2 Colors" }
 }
 
+/// How synced lyrics are presented (original styles inspired by verci.xyz).
+enum LyricsStyle: Int, Codable, CaseIterable, Sendable {
+    case focus = 0      // scrolling list, active line bright (Apple Music-like)
+    case karaoke = 1    // per-word fill sweep across the active line
+    case spotlight = 2  // one large centered line with faint neighbors
+
+    var title: String {
+        switch self {
+        case .focus: return "Focus"
+        case .karaoke: return "Karaoke"
+        case .spotlight: return "Spotlight"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .focus: return "text.alignleft"
+        case .karaoke: return "mic"
+        case .spotlight: return "textformat.size.larger"
+        }
+    }
+}
+
 /// How the rim colors are chosen (spec §10–11).
 enum ColorSource: Int, Codable, Sendable {
     case manual = 0

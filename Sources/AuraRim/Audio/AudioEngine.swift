@@ -84,13 +84,12 @@ final class AudioEngine {
     /// sprung at launch.
     func start(promptIfNeeded: Bool = false) async {
         guard !isRunning else { return }
-        var granted = SystemAudioCapture.permissionGranted()
-        if !granted && promptIfNeeded { granted = SystemAudioCapture.requestPermission() }
-        permission = granted ? .granted : .denied
-        onPermissionChange?(permission)
-        guard granted else {
-            Log.audio.notice("Audio permission not granted; staying in idle visuals")
-            return
+        // CGPreflight can lag behind the real grant, so we don't hard-gate on it.
+        // Trigger the system prompt only on an explicit user action, then let
+        // ScreenCaptureKit be the real gate: if permission is truly granted the
+        // capture starts even when preflight still reports false.
+        if promptIfNeeded && !SystemAudioCapture.permissionGranted() {
+            _ = SystemAudioCapture.requestPermission()
         }
         let processor = self.processor
         let capture = SystemAudioCapture(sink: { mono, sr in processor.feed(mono, sampleRate: sr) })
@@ -98,6 +97,8 @@ final class AudioEngine {
             try await capture.start()
             self.capture = capture
             isRunning = true
+            permission = .granted
+            onPermissionChange?(permission)
         } catch {
             Log.audio.error("Failed to start capture: \(error.localizedDescription)")
             permission = .denied

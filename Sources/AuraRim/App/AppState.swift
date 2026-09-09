@@ -33,6 +33,8 @@ final class AppState {
     var lockScreenPlayer: Bool { didSet { prefs.set(lockScreenPlayer, .lockScreenPlayer) } }
     var playerWindowEnabled: Bool { didSet { prefs.set(playerWindowEnabled, .playerWindowEnabled) } }
     var automaticUpdates: Bool { didSet { prefs.set(automaticUpdates, .automaticUpdates) } }
+    var lyricsStyle: LyricsStyle { didSet { prefs.set(lyricsStyle.rawValue, .lyricsStyle) } }
+    var lyricsLeftWidth: Double { didSet { prefs.set(lyricsLeftWidth, .lyricsLeftWidth) } }
 
     var onboardingComplete: Bool { didSet { prefs.set(onboardingComplete, .onboardingComplete) } }
 
@@ -67,6 +69,8 @@ final class AppState {
         lockScreenPlayer = prefs.bool(.lockScreenPlayer)
         playerWindowEnabled = prefs.bool(.playerWindowEnabled)
         automaticUpdates = prefs.bool(.automaticUpdates)
+        lyricsStyle = LyricsStyle(rawValue: prefs.int(.lyricsStyle)) ?? .focus
+        lyricsLeftWidth = prefs.double(.lyricsLeftWidth)
         onboardingComplete = prefs.bool(.onboardingComplete)
         selectedDisplayUUIDs = prefs.displayUUIDs()
     }

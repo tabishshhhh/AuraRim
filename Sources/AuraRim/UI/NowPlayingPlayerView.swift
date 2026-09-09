@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Actions for the now-playing window's controls.
 struct PlayerActions {
@@ -25,6 +26,7 @@ struct NowPlayingPlayerView: View {
 
     @State private var showLyrics = false
     @State private var coverEnlarged = false
+    @State private var dragStartWidth: Double?
 
     private var track: TrackMetadata? { state.currentTrack }
     private var isPlaying: Bool { track?.playbackState == .playing }
@@ -66,27 +68,68 @@ struct NowPlayingPlayerView: View {
     }
 
     private var lyricsLayout: some View {
-        HStack(alignment: .center, spacing: 20) {
+        HStack(spacing: 0) {
             VStack(spacing: 14) {
                 artwork
                 titleBlock
                 transport
                 lyricsButton
             }
-            .frame(width: 210)
+            .frame(width: state.lyricsLeftWidth)
+            resizeDivider
             LyricsView(state: state)
                 .padding(.horizontal, 22)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .glassCard(cornerRadius: 22)
+                .overlay(alignment: .topTrailing) { styleMenu.padding(12) }
                 .transition(.opacity)
         }
         .padding(.vertical, 18)
     }
 
+    /// Drag to rebalance the player/lyrics split (spec §21: user's choice).
+    private var resizeDivider: some View {
+        Capsule()
+            .fill(.white.opacity(0.18))
+            .frame(width: 4, height: 48)
+            .padding(.horizontal, 8)
+            .contentShape(Rectangle())
+            .onHover { $0 ? NSCursor.resizeLeftRight.push() : NSCursor.pop() }
+            .gesture(
+                DragGesture()
+                    .onChanged { g in
+                        if dragStartWidth == nil { dragStartWidth = state.lyricsLeftWidth }
+                        state.lyricsLeftWidth = min(360, max(150, (dragStartWidth ?? 210) + g.translation.width))
+                    }
+                    .onEnded { _ in dragStartWidth = nil })
+    }
+
+    /// Verci-inspired lyrics style switcher (Focus / Karaoke / Spotlight).
+    private var styleMenu: some View {
+        Menu {
+            ForEach(LyricsStyle.allCases, id: \.self) { style in
+                Button {
+                    withAnimation(.smooth) { state.lyricsStyle = style }
+                } label: {
+                    Label(style.title, systemImage: style.symbol)
+                }
+            }
+        } label: {
+            Image(systemName: state.lyricsStyle.symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(.white.opacity(0.12), in: Circle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+    }
+
     // MARK: Artwork (tap to enlarge over the controls)
 
     private var artSize: CGFloat {
-        if showLyrics { return 190 }
+        if showLyrics { return min(200, state.lyricsLeftWidth - 24) }
         if coverEnlarged { return isExpanded ? 520 : 430 }
         return isExpanded ? 360 : 300
     }

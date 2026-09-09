@@ -17,6 +17,7 @@ struct Preferences {
         case launchAtLogin, showInDock, startRimOnLaunch, lockScreenPlayer
         case selectedDisplayIDs, playerWindowEnabled, playerWindowFrame
         case onboardingComplete, automaticUpdates
+        case lyricsStyle, lyricsLeftWidth
     }
 
     private func registerDefaults() {
@@ -38,7 +39,9 @@ struct Preferences {
             Key.startRimOnLaunch.rawValue: true,
             Key.playerWindowEnabled.rawValue: false,
             Key.onboardingComplete.rawValue: false,
-            Key.automaticUpdates.rawValue: true
+            Key.automaticUpdates.rawValue: true,
+            Key.lyricsStyle.rawValue: LyricsStyle.focus.rawValue,
+            Key.lyricsLeftWidth.rawValue: 210.0   // player column width in lyrics view
         ])
     }
 
