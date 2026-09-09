@@ -26,7 +26,6 @@ struct NowPlayingPlayerView: View {
 
     @State private var showLyrics = false
     @State private var coverEnlarged = false
-    @State private var dragStartWidth: Double?
 
     private var track: TrackMetadata? { state.currentTrack }
     private var isPlaying: Bool { track?.playbackState == .playing }
@@ -47,7 +46,7 @@ struct NowPlayingPlayerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
-        .clipShape(RoundedRectangle(cornerRadius: isExpanded ? 0 : 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: isExpanded ? 0 : 26, style: .continuous))
         .animation(contentSpring, value: showLyrics)
         .animation(contentSpring, value: coverEnlarged)
     }
@@ -88,20 +87,15 @@ struct NowPlayingPlayerView: View {
     }
 
     /// Drag to rebalance the player/lyrics split (spec §21: user's choice).
+    /// Uses an AppKit-backed handle so it resizes instead of moving the window.
     private var resizeDivider: some View {
-        Capsule()
-            .fill(.white.opacity(0.18))
-            .frame(width: 4, height: 48)
-            .padding(.horizontal, 8)
-            .contentShape(Rectangle())
-            .onHover { $0 ? NSCursor.resizeLeftRight.push() : NSCursor.pop() }
-            .gesture(
-                DragGesture()
-                    .onChanged { g in
-                        if dragStartWidth == nil { dragStartWidth = state.lyricsLeftWidth }
-                        state.lyricsLeftWidth = min(360, max(150, (dragStartWidth ?? 210) + g.translation.width))
-                    }
-                    .onEnded { _ in dragStartWidth = nil })
+        ZStack {
+            Capsule().fill(.white.opacity(0.18)).frame(width: 4, height: 48)
+            ResizeHandle { dx in
+                state.lyricsLeftWidth = min(360, max(150, state.lyricsLeftWidth + dx))
+            }
+        }
+        .frame(width: 22)
     }
 
     /// Verci-inspired lyrics style switcher (Focus / Karaoke / Spotlight).

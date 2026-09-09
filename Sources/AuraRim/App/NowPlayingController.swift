@@ -10,7 +10,7 @@ final class NowPlayingController {
     private var panel: NSPanel?
     private var hosting: NSHostingController<NowPlayingPlayerView>?
     private var isExpanded = false
-    private var compactFrame = CGRect(x: 0, y: 0, width: 720, height: 600)
+    private var compactFrame = CGRect(x: 0, y: 0, width: 880, height: 560)
     private let frameKey = "playerWindowFrameCompact"
 
     /// Set by AppDelegate to open the Settings window from the player toolbar.
@@ -23,11 +23,24 @@ final class NowPlayingController {
     func toggle() { isVisible ? hide() : show() }
 
     func show() {
+        let firstShow = panel == nil
         if panel == nil { build() }
-        panel?.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
+        guard let panel else { return }
+        panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
         // Make it key so the SwiftUI controls (Lyrics, transport) receive clicks.
         NSApp.activate(ignoringOtherApps: true)
-        panel?.makeKeyAndOrderFront(nil)
+        if !panel.isVisible {
+            // Smooth fade-in when appearing.
+            panel.alphaValue = firstShow ? 0 : panel.alphaValue
+            panel.makeKeyAndOrderFront(nil)
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.28
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                panel.animator().alphaValue = 1
+            }
+        } else {
+            panel.makeKeyAndOrderFront(nil)
+        }
     }
 
     func hide() {
@@ -123,7 +136,7 @@ final class NowPlayingController {
         }
         // Default: centered on the main screen.
         if let vf = NSScreen.main?.visibleFrame {
-            let w: CGFloat = 720, h: CGFloat = 600
+            let w: CGFloat = 880, h: CGFloat = 560
             compactFrame = CGRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
         }
     }

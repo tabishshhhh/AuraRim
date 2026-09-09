@@ -66,9 +66,11 @@ struct LyricsView: View {
                 .mask(LinearGradient(colors: [.clear, .black, .black, .clear],
                                      startPoint: .top, endPoint: .bottom))
                 .onChange(of: active) { _, idx in
-                    withAnimation(.smooth(duration: 0.55)) { proxy.scrollTo(idx, anchor: .center) }
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.9)) {
+                        proxy.scrollTo(idx, anchor: UnitPoint(x: 0.5, y: 0.42))
+                    }
                 }
-                .onAppear { proxy.scrollTo(active, anchor: .center) }
+                .onAppear { proxy.scrollTo(active, anchor: UnitPoint(x: 0.5, y: 0.42)) }
             }
         }
     }
@@ -77,17 +79,18 @@ struct LyricsView: View {
         Group {
             if active && karaoke {
                 Text(karaokeAttributed(text, progress: progress))
-                    .font(.system(size: 30, weight: .heavy))
+                    .font(.system(size: 30, weight: .bold))
             } else {
                 Text(text.isEmpty ? "♪" : text)
-                    .font(.system(size: 30, weight: .heavy))
-                    .foregroundStyle(active ? .white : .white.opacity(0.26))
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(active ? .white : .white.opacity(0.4))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .scaleEffect(active ? 1.0 : 0.85, anchor: .leading)
-        .padding(.vertical, 10)
-        .animation(.smooth(duration: 0.35), value: active)
+        .scaleEffect(active ? 1.0 : 0.92, anchor: .leading)
+        .blur(radius: active ? 0 : 0.5)
+        .padding(.vertical, 13)
+        .animation(.spring(response: 0.4, dampingFraction: 0.82), value: active)
     }
 
     // MARK: Spotlight (single centered line)
@@ -100,7 +103,7 @@ struct LyricsView: View {
                 Spacer()
                 if active - 1 >= 0 { faint(lyrics.lines[active - 1].text) }
                 Text(lyrics.lines[active].text.isEmpty ? "♪" : lyrics.lines[active].text)
-                    .font(.system(size: 40, weight: .heavy))
+                    .font(.system(size: 38, weight: .bold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .id(active)
@@ -111,7 +114,7 @@ struct LyricsView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 24)
-            .animation(.smooth(duration: 0.45), value: active)
+            .animation(.spring(response: 0.5, dampingFraction: 0.88), value: active)
         }
     }
 
