@@ -66,7 +66,9 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
 
         u.animationMode = Int32(c.animationMode.rawValue)
         if c.animationMode == .musicSync {
-            u.pulseStrength = min(1, a.beat * 0.8 + a.amplitude * 0.4)
+            // Weight the transient beat harder than the smoothed amplitude so the
+            // rim snaps on the beat rather than trailing the volume envelope.
+            u.pulseStrength = min(1, a.beat * 1.05 + a.amplitude * 0.22)
             u.silence = a.silence
         }
 

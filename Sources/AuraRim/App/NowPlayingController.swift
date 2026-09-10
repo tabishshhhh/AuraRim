@@ -16,7 +16,50 @@ final class NowPlayingController {
     /// Set by AppDelegate to open the Settings window from the player toolbar.
     var onOpenSettings: () -> Void = {}
 
-    init(appState: AppState) { self.appState = appState }
+    private var enteredForLock = false
+
+    init(appState: AppState) {
+        self.appState = appState
+        observeLockAndIdle()
+    }
+
+    // MARK: Lock / idle ambient lyrics
+    //
+    // NOTE: macOS does not allow any third-party app to draw on the *secure*
+    // lock screen — no public API exists and faking it is disallowed (spec §24).
+    // The compliant alternative: when the screen locks or the screensaver starts
+    // and "Lock screen player" is on, we present a full-screen lyrics display.
+    // It is visible around idle/lock and after wake; the true secure screen still
+    // shows only the system's own Now Playing controls.
+    private func observeLockAndIdle() {
+        let dnc = DistributedNotificationCenter.default()
+        for name in ["com.apple.screenIsLocked", "com.apple.screensaver.didstart"] {
+            dnc.addObserver(forName: .init(name), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.enterLockLyrics() }
+            }
+        }
+        for name in ["com.apple.screenIsUnlocked", "com.apple.screensaver.didstop"] {
+            dnc.addObserver(forName: .init(name), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.exitLockLyrics() }
+            }
+        }
+    }
+
+    private func enterLockLyrics() {
+        guard appState.lockScreenPlayer,
+              let track = appState.currentTrack, track.playbackState == .playing else { return }
+        enteredForLock = true
+        appState.playerShowLyrics = true
+        if !isExpanded { isExpanded = true }
+        show()
+    }
+
+    private func exitLockLyrics() {
+        guard enteredForLock else { return }
+        enteredForLock = false
+        isExpanded = false
+        hide()
+    }
 
     var isVisible: Bool { panel?.isVisible ?? false }
 
@@ -27,6 +70,8 @@ final class NowPlayingController {
         if panel == nil { build() }
         guard let panel else { return }
         panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
+        // Fullscreen/ambient mode sits above the screensaver; compact floats.
+        panel.level = isExpanded ? .screenSaver : .floating
         // Make it key so the SwiftUI controls (Lyrics, transport) receive clicks.
         NSApp.activate(ignoringOtherApps: true)
         if !panel.isVisible {
@@ -105,6 +150,7 @@ final class NowPlayingController {
         if !isExpanded { compactFrame = panel.frame; saveFrame() }
         isExpanded.toggle()
         hosting?.rootView = makeView()
+        panel.level = isExpanded ? .screenSaver : .floating
         panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true, animate: true)
     }
 

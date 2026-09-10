@@ -24,9 +24,9 @@ struct NowPlayingPlayerView: View {
     var isExpanded: Bool
     var actions: PlayerActions
 
-    @State private var showLyrics = false
     @State private var coverEnlarged = false
 
+    private var showLyrics: Bool { state.playerShowLyrics }
     private var track: TrackMetadata? { state.currentTrack }
     private var isPlaying: Bool { track?.playbackState == .playing }
     private let contentSpring = Animation.spring(response: 0.45, dampingFraction: 0.82)
@@ -70,8 +70,10 @@ struct NowPlayingPlayerView: View {
         HStack(spacing: 0) {
             VStack(spacing: 14) {
                 artwork
-                titleBlock
-                transport
+                if !coverEnlarged {
+                    titleBlock.transition(.opacity)
+                    transport.transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
                 lyricsButton
             }
             .frame(width: state.lyricsLeftWidth)
@@ -123,7 +125,9 @@ struct NowPlayingPlayerView: View {
     // MARK: Artwork (tap to enlarge over the controls)
 
     private var artSize: CGFloat {
-        if showLyrics { return min(200, state.lyricsLeftWidth - 24) }
+        if showLyrics {
+            return coverEnlarged ? state.lyricsLeftWidth : min(200, state.lyricsLeftWidth - 24)
+        }
         if coverEnlarged { return isExpanded ? 520 : 430 }
         return isExpanded ? 360 : 300
     }
@@ -143,10 +147,7 @@ struct NowPlayingPlayerView: View {
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.12)))
         .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
         .contentShape(Rectangle())
-        .onTapGesture {
-            guard !showLyrics else { return }
-            coverEnlarged.toggle()
-        }
+        .onTapGesture { coverEnlarged.toggle() }
         .help(coverEnlarged ? "Shrink" : "Enlarge")
     }
 
@@ -179,7 +180,7 @@ struct NowPlayingPlayerView: View {
     }
 
     private var lyricsButton: some View {
-        Button { showLyrics.toggle() } label: {
+        Button { state.playerShowLyrics.toggle() } label: {
             Label(showLyrics ? "Hide Lyrics" : "Lyrics", systemImage: "quote.bubble")
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 16).padding(.vertical, 8)

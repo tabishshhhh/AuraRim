@@ -6,14 +6,13 @@ import QuartzCore
 final class AudioProcessor: @unchecked Sendable {
     private let bus: AnimationStateBus
     private let analyzer: AudioAnalyzer
-    private let beat = BeatDetector()
+    private let beat = BeatDetector(cooldown: 0.10, sensitivity: 1.3, fluxThreshold: 0.4)
     private var beatEnv = EnvelopeFollower(attack: 0.01, release: 0.25)
     private var ampEnv = EnvelopeFollower(attack: 0.05, release: 0.30)
     private var silenceEnv = EnvelopeFollower(attack: 0.6, release: 1.2)
     private let fftSize: Int
     private let hop: Int
     private var buffer = [Float]()
-    private var lastTime = CACurrentMediaTime()
     private let startTime = CACurrentMediaTime()
 
     init(bus: AnimationStateBus, fftSize: Int = 1024) {
@@ -26,26 +25,31 @@ final class AudioProcessor: @unchecked Sendable {
     /// Called from the capture serial queue.
     func feed(_ mono: [Float], sampleRate: Double) {
         buffer.append(contentsOf: mono)
+        // Latency: keep at most a couple of hops queued so the visuals track the
+        // audio the user hears rather than a growing backlog.
+        let maxBacklog = fftSize + hop * 2
+        if buffer.count > maxBacklog { buffer.removeFirst(buffer.count - maxBacklog) }
+
         while buffer.count >= fftSize {
             let frame = Array(buffer[0..<fftSize])
             buffer.removeFirst(hop)
 
-            let now = CACurrentMediaTime()
-            let dt = Float(min(0.1, max(0.001, now - lastTime)))
-            lastTime = now
+            // Use audio-time dt (not wall clock) so cooldown/decay stay accurate
+            // even when a large capture chunk is processed in one burst.
+            let dt = Float(hop) / Float(sampleRate)
 
             let f = analyzer.process(mono: frame, sampleRate: sampleRate)
             let rawBeat = beat.process(bass: f.bass, flux: f.spectralFlux, dt: dt)
 
             var state = AnimationState()
-            state.beat = beatEnv.impulse(rawBeat, dt: dt, decay: 0.25)
+            state.beat = beatEnv.impulse(rawBeat, dt: dt, decay: 0.16)
             state.amplitude = ampEnv.update(target: f.rms, dt: dt)
             state.bass = f.bass
             state.mids = f.mids
             state.highs = f.highs
             let silenceTarget: Float = f.rms < 0.02 ? 1 : 0
             state.silence = silenceEnv.update(target: silenceTarget, dt: dt)
-            state.elapsedTime = Float(now - startTime)
+            state.elapsedTime = Float(CACurrentMediaTime() - startTime)
             bus.store(state)
         }
         // Bound memory if the consumer stalls.

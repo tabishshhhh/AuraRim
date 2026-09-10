@@ -66,11 +66,11 @@ struct LyricsView: View {
                 .mask(LinearGradient(colors: [.clear, .black, .black, .clear],
                                      startPoint: .top, endPoint: .bottom))
                 .onChange(of: active) { _, idx in
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.9)) {
-                        proxy.scrollTo(idx, anchor: UnitPoint(x: 0.5, y: 0.42))
+                    withAnimation(.smooth(duration: 0.5)) {
+                        proxy.scrollTo(idx, anchor: UnitPoint(x: 0.5, y: 0.4))
                     }
                 }
-                .onAppear { proxy.scrollTo(active, anchor: UnitPoint(x: 0.5, y: 0.42)) }
+                .onAppear { proxy.scrollTo(active, anchor: UnitPoint(x: 0.5, y: 0.4)) }
             }
         }
     }
@@ -87,10 +87,9 @@ struct LyricsView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .scaleEffect(active ? 1.0 : 0.92, anchor: .leading)
-        .blur(radius: active ? 0 : 0.5)
+        .scaleEffect(active ? 1.0 : 0.95, anchor: .leading)
         .padding(.vertical, 13)
-        .animation(.spring(response: 0.4, dampingFraction: 0.82), value: active)
+        .animation(.smooth(duration: 0.45), value: active)
     }
 
     // MARK: Spotlight (single centered line)

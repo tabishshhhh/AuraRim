@@ -42,6 +42,9 @@ final class AppState {
     var selectedDisplayUUIDs: Set<String> { didSet { prefs.setDisplayUUIDs(selectedDisplayUUIDs) } }
 
     // MARK: Non-persisted live state
+    /// Player window: whether the lyrics pane is showing (driven by the UI and,
+    /// for the lock/idle experience, by the window controller).
+    var playerShowLyrics = false
     var currentTrack: TrackMetadata?
     /// Colors extracted from current album art. Not persisted; recomputed live.
     var albumColors: (primary: ColorValue, secondary: ColorValue)?
