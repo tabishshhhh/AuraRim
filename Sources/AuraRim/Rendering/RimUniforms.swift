@@ -21,6 +21,8 @@ struct RimUniforms {
     var notchHeight: Float = 0
     var cornerRadius: Float = 40
     var gradientRotation: Float = 0
+    var chasePhase: Float = 0      // clockwise light-chase head position (loops 0…1)
+    var chaseEnergy: Float = 0     // 0…1 how bright/tight the chase is (music energy)
     var animationMode: Int32 = 0
     var notchEnabled: Int32 = 0
 }

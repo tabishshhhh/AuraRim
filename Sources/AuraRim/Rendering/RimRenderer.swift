@@ -9,6 +9,9 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
     private let configBox: Locked<RimConfig>
     private let audioBus: AnimationStateBus
     private let startTime = CACurrentMediaTime()
+    private var lastDrawTime = CACurrentMediaTime()
+    private var chasePhase: Float = 0          // integrated clockwise position (loops)
+    private var chaseEnergy: Float = 0         // smoothed energy for the chase
 
     init(engine: MetalRenderer, config: RimConfig, audioBus: AnimationStateBus) {
         self.engine = engine
@@ -45,7 +48,10 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
         let c = configBox.value
         let a = audioBus.load()
         let scale = Float(c.scale)
-        let elapsed = Float(CACurrentMediaTime() - startTime)
+        let now = CACurrentMediaTime()
+        let elapsed = Float(now - startTime)
+        let dt = Float(min(0.1, max(0, now - lastDrawTime)))
+        lastDrawTime = now
 
         var u = RimUniforms()
         u.resolution = SIMD2(Float(drawableSize.width), Float(drawableSize.height))
@@ -65,12 +71,31 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
         u.secondaryColor = c.secondary.simd
 
         u.animationMode = Int32(c.animationMode.rawValue)
-        if c.animationMode == .musicSync {
-            // Weight the transient beat harder than the smoothed amplitude so the
-            // rim snaps on the beat rather than trailing the volume envelope.
+
+        // Clockwise light chase: integrate a head position each frame at a speed
+        // set by the mode (audio-reactive in Music Sync). loops/second.
+        var targetEnergy: Float = 0
+        var speed: Float = 0            // loops per second
+        switch c.animationMode {
+        case .musicSync:
             u.pulseStrength = min(1, a.beat * 1.05 + a.amplitude * 0.22)
             u.silence = a.silence
+            // Energy from the music drives brightness/tightness and speed.
+            targetEnergy = min(1, a.amplitude * 0.8 + a.beat * 0.7 + 0.12 * (1 - a.silence))
+            speed = 0.12 + targetEnergy * 0.5 + a.beat * 0.4
+        case .default, .idle:
+            targetEnergy = 0.18         // gentle ambient sweep
+            speed = 0.05
+        case .noAnimation:
+            targetEnergy = 0
+            speed = 0
         }
+        // Smooth the energy so it doesn't flicker; advance the head.
+        chaseEnergy += (targetEnergy - chaseEnergy) * min(1, dt * 6)
+        chasePhase += dt * speed
+        if chasePhase > 1_000_000 { chasePhase -= 1_000_000 }
+        u.chasePhase = chasePhase
+        u.chaseEnergy = chaseEnergy
 
         if c.notchEnabled && c.notch.hasNotch {
             u.notchEnabled = 1

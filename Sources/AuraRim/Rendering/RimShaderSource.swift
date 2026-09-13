@@ -26,6 +26,8 @@ enum RimShaderSource {
         float  notchHeight;    // pixels
         float  cornerRadius;   // pixels
         float  gradientRotation;
+        float  chasePhase;     // clockwise chase head 0..1 (loops)
+        float  chaseEnergy;    // 0..1 brightness/tightness of the chase
         int    animationMode;  // 0 music, 1 idle, 2 static
         int    notchEnabled;
     };
@@ -94,6 +96,20 @@ enum RimShaderSource {
         float w = 0.5 + 0.5 * cos(2.0 * M_PI_F * (pos + rot));
         w = clamp(mix(w, u.gradientMix, 0.35), 0.0, 1.0);
         float3 grad = mix(u.secondaryColor.rgb, u.primaryColor.rgb, w);
+
+        // Clockwise light chase: a bright comet with a trailing tail that travels
+        // around the perimeter. Energy (from the music) tightens & brightens it.
+        if (u.animationMode != 2 && u.chaseEnergy > 0.001) {
+            float head = fract(u.chasePhase);
+            float dloop = abs(fract(pos - head + 0.5) - 0.5);   // circular distance 0..0.5
+            float width = mix(0.22, 0.07, u.chaseEnergy);        // tighter when energetic
+            float chase = smoothstep(width, 0.0, dloop);
+            float behind = fract(head - pos);                    // 0 at head → 1 fully behind
+            float tail = smoothstep(0.30, 0.0, behind) * 0.55;
+            float chaseAmt = clamp(chase + tail, 0.0, 1.0);
+            intensity *= 1.0 + chaseAmt * (0.6 + u.chaseEnergy * 1.6);
+            grad = mix(grad, float3(1.0), chase * (0.18 + u.chaseEnergy * 0.4));
+        }
 
         // Notch mask (spec §67): carve the notch out of the top edge, feathered.
         float notchMask = 1.0;
