@@ -8,8 +8,7 @@ struct LyricsView: View {
 
     @State private var lyrics: Lyrics?
     @State private var loading = true
-    @State private var basePosition: TimeInterval = 0
-    @State private var baseDate = Date()
+    @State private var clock = PlaybackClock()
 
     private var track: TrackMetadata? { state.currentTrack }
 
@@ -28,9 +27,14 @@ struct LyricsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: track?.signature) { await load() }
-        .onChange(of: track?.playbackPosition ?? 0) { _, pos in
-            basePosition = pos; baseDate = Date()
-        }
+        .onChange(of: track?.playbackPosition ?? 0) { _, _ in syncClock() }
+        .onChange(of: track?.playbackState) { _, _ in syncClock() }
+    }
+
+    private func syncClock() {
+        guard let t = track else { return }
+        clock.update(position: t.playbackPosition, playing: t.playbackState == .playing,
+                     signature: t.signature)
     }
 
     @ViewBuilder private func content(_ lyrics: Lyrics) -> some View {
@@ -160,15 +164,14 @@ struct LyricsView: View {
         return min(1, max(0, (now - start) / (end - start)))
     }
 
-    private func estimatedTime(at date: Date) -> TimeInterval {
-        guard track?.playbackState == .playing else { return basePosition }
-        return basePosition + date.timeIntervalSince(baseDate)
-    }
+    /// Monotonic-clock estimate of the current position (smooth between polls).
+    private func estimatedTime(at date: Date) -> TimeInterval { clock.currentTime }
 
     private func load() async {
         guard let track else { loading = false; lyrics = nil; return }
         loading = true; lyrics = nil
-        basePosition = track.playbackPosition; baseDate = Date()
+        clock.update(position: track.playbackPosition, playing: track.playbackState == .playing,
+                     signature: track.signature)
         lyrics = await LyricsProvider.fetch(title: track.title, artist: track.artist,
                                             album: track.album, duration: track.duration)
         loading = false

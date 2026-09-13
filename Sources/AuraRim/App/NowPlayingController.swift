@@ -17,6 +17,20 @@ final class NowPlayingController {
     var onOpenSettings: () -> Void = {}
 
     private var enteredForLock = false
+    private var awakeActivity: NSObjectProtocol?
+
+    /// Keep the display awake only while the full-screen/ambient lyrics show —
+    /// matches the reference behavior (display stays on during playback, then
+    /// sleeps normally afterward).
+    private func setKeepAwake(_ on: Bool) {
+        if on, awakeActivity == nil {
+            awakeActivity = ProcessInfo.processInfo.beginActivity(
+                options: [.idleDisplaySleepDisabled, .userInitiated], reason: "AuraRim ambient lyrics")
+        } else if !on, let a = awakeActivity {
+            ProcessInfo.processInfo.endActivity(a)
+            awakeActivity = nil
+        }
+    }
 
     init(appState: AppState) {
         self.appState = appState
@@ -72,6 +86,7 @@ final class NowPlayingController {
         panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
         // Fullscreen/ambient mode sits above the screensaver; compact floats.
         panel.level = isExpanded ? .screenSaver : .floating
+        setKeepAwake(isExpanded)
         // Make it key so the SwiftUI controls (Lyrics, transport) receive clicks.
         NSApp.activate(ignoringOtherApps: true)
         if !panel.isVisible {
@@ -89,6 +104,7 @@ final class NowPlayingController {
     }
 
     func hide() {
+        setKeepAwake(false)
         if let panel, !isExpanded { compactFrame = panel.frame; saveFrame() }
         panel?.orderOut(nil)
     }
@@ -151,6 +167,7 @@ final class NowPlayingController {
         isExpanded.toggle()
         hosting?.rootView = makeView()
         panel.level = isExpanded ? .screenSaver : .floating
+        setKeepAwake(isExpanded)
         panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true, animate: true)
     }
 

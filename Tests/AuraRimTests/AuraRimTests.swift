@@ -108,6 +108,34 @@ final class TrackIdentityTests: XCTestCase {
     }
 }
 
+final class PlaybackClockTests: XCTestCase {
+    func testPausedHoldsPosition() {
+        var c = PlaybackClock()
+        c.update(position: 30, playing: false, signature: "a")
+        XCTAssertEqual(c.currentTime, 30, accuracy: 0.01)
+    }
+
+    func testSeekReanchors() {
+        var c = PlaybackClock()
+        c.update(position: 30, playing: false, signature: "a")
+        c.update(position: 90, playing: false, signature: "a")   // big jump = seek
+        XCTAssertEqual(c.currentTime, 90, accuracy: 0.01)
+    }
+
+    func testTrackChangeReanchors() {
+        var c = PlaybackClock()
+        c.update(position: 60, playing: false, signature: "a")
+        c.update(position: 0, playing: false, signature: "b")    // new track
+        XCTAssertEqual(c.currentTime, 0, accuracy: 0.01)
+    }
+
+    func testPlayingAdvances() {
+        var c = PlaybackClock()
+        c.update(position: 10, playing: true, signature: "a")
+        XCTAssertGreaterThanOrEqual(c.currentTime, 10)
+    }
+}
+
 final class LicenseStateTests: XCTestCase {
     func testIsActive() {
         XCTAssertTrue(LicenseState.active(key: "k").isActive)
