@@ -1,9 +1,29 @@
-# AuraRim
+<div align="center">
 
-A native macOS menu-bar app that turns your screen into an ambient music
-experience: a glowing, beat-reactive **rim of light** around your display, plus
-**word-by-word synced lyrics** — in the player window and full-screen on the lock
-/ idle screen. Colors follow the album art of whatever's playing.
+# ✨ AuraRim
+
+### Ambient screen-edge lighting + word-by-word synced lyrics for macOS
+
+A native menu-bar app that turns your Mac into an ambient music experience: a
+glowing, **beat-reactive rim of light** around your display, plus **word-by-word
+synced lyrics** in the player and full-screen on your lock screen — all colored
+from the album art of whatever's playing.
+
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?logo=apple)
+![Swift](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
+![Metal](https://img.shields.io/badge/Metal-rendered-9cf)
+![License](https://img.shields.io/badge/license-MIT-blue)
+[![Stars](https://img.shields.io/github/stars/tabishshhhh/AuraRim?style=social)](https://github.com/tabishshhhh/AuraRim/stargazers)
+
+<!-- Drop a demo GIF here — it's the single biggest thing for traction.
+     Record with ⌘⇧5, convert to GIF (e.g. Gifski), save as docs/demo.gif: -->
+<!-- ![AuraRim demo](docs/demo.gif) -->
+
+**If this looks cool, drop a ⭐ — it genuinely helps.**
+
+</div>
+
+---
 
 > **Originality.** AuraRim is an independent, from-scratch implementation of the
 > publicly observable interaction models of two apps — *Lumn* (screen-edge
@@ -39,6 +59,13 @@ experience: a glowing, beat-reactive **rim of light** around your display, plus
   ambient lyric display with a breathing, beat-pulsing glow rim.
 - macOS does **not** permit drawing on the true secure lock screen (no app can);
   this is the compliant full-screen-on-lock approach, the same one Verci uses.
+
+## Download
+
+- **Prebuilt app:** grab the latest `AuraRim.dmg` from the
+  [**Releases**](https://github.com/tabishshhhh/AuraRim/releases) page, drag it to
+  Applications, and launch. *(No release yet? Build from source below — it's one command.)*
+- **From source:** see [Build & run](#build--run).
 
 ## Requirements
 
