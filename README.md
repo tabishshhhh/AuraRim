@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✨ AuraRim
+#AuraRim
 
 ### Ambient screen-edge lighting + word-by-word synced lyrics for macOS
 
@@ -22,7 +22,6 @@ from the album art of whatever's playing.
 <!-- Even better than a still: drop a demo GIF here. Record with ⌘⇧5, convert to
      GIF (e.g. Gifski), save as docs/demo.gif, then use: ![demo](docs/demo.gif) -->
 
-**If this looks cool, drop a ⭐ — it genuinely helps.**
 
 </div>
 
