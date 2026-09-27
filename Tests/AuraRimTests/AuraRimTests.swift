@@ -136,6 +136,46 @@ final class PlaybackClockTests: XCTestCase {
     }
 }
 
+final class NetEaseLyricsTests: XCTestCase {
+    func testParseYRCWordTiming() {
+        let raw = """
+        {"t":0,"c":[{"tx":"制作人: The Weeknd"}]}
+        [23550,120](23550,120,0)Yeah
+        [27360,1290](27360,240,0)I've (27600,90,0)been (27690,360,0)tryna (28050,600,0)call
+        """
+        let lines = NetEaseLyricsProvider.parseYRC(raw)
+        XCTAssertEqual(lines.count, 2)                       // JSON credit line skipped
+        XCTAssertEqual(lines[0].text, "Yeah")
+        XCTAssertEqual(lines[0].time ?? -1, 23.55, accuracy: 0.001)
+        let words = try! XCTUnwrap(lines[1].words)
+        XCTAssertEqual(words.count, 4)
+        XCTAssertEqual(words[0].text.trimmingCharacters(in: .whitespaces), "I've")
+        XCTAssertEqual(words[0].time, 27.36, accuracy: 0.001)
+        XCTAssertEqual(words[0].duration, 0.24, accuracy: 0.001)
+        XCTAssertEqual(words[3].text.trimmingCharacters(in: .whitespaces), "call")
+    }
+
+    func testParseLRCFallback() {
+        let raw = "[00:23.55]Yeah\n[00:27.36]I've been tryna call"
+        let lines = NetEaseLyricsProvider.parseLRC(raw)
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertNil(lines[0].words)                         // line-level only
+        XCTAssertEqual(lines[1].time ?? -1, 27.36, accuracy: 0.001)
+        XCTAssertEqual(lines[1].text, "I've been tryna call")
+    }
+}
+
+final class LyricSymbolMapTests: XCTestCase {
+    // Also guards against duplicate dictionary keys, which crash on first access.
+    func testKnownWordsResolve() {
+        XCTAssertNotNil(LyricSymbolMap.symbol(for: "love"))
+        XCTAssertNotNil(LyricSymbolMap.symbol(for: "Fire!"))       // punctuation stripped
+        XCTAssertNotNil(LyricSymbolMap.symbol(for: "running"))     // lemmatizes to "run"
+        XCTAssertNil(LyricSymbolMap.symbol(for: "a"))              // too short
+        XCTAssertNil(LyricSymbolMap.symbol(for: "zxqwv"))         // unmapped
+    }
+}
+
 final class LicenseStateTests: XCTestCase {
     func testIsActive() {
         XCTAssertTrue(LicenseState.active(key: "k").isActive)

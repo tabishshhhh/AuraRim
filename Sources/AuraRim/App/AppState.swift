@@ -46,6 +46,10 @@ final class AppState {
     /// for the lock/idle experience, by the window controller).
     var playerShowLyrics = false
     var currentTrack: TrackMetadata?
+    /// Live audio → animation handoff, set by RimController. Read (not observed)
+    /// by the full-screen ambient lyrics view so its glowing rim can pulse with
+    /// the beat without routing audio through SwiftUI observation.
+    @ObservationIgnored var animationBus: AnimationStateBus?
     /// Colors extracted from current album art. Not persisted; recomputed live.
     var albumColors: (primary: ColorValue, secondary: ColorValue)?
     /// Snapshot of discovered displays, for the picker.

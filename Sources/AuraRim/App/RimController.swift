@@ -24,6 +24,7 @@ final class RimController {
         let colors = appState.targetColors
         self.colorEngine = ColorTransitionEngine(primary: colors.primary, secondary: colors.secondary)
 
+        appState.animationBus = audio.bus
         configureCallbacks()
         appState.displays = displayManager.displays
         ensureDefaultSelection()

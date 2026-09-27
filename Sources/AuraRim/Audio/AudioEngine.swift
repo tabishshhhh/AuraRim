@@ -39,7 +39,9 @@ final class AudioProcessor: @unchecked Sendable {
             let dt = Float(hop) / Float(sampleRate)
 
             let f = analyzer.process(mono: frame, sampleRate: sampleRate)
-            let rawBeat = beat.process(bass: f.bass, flux: f.spectralFlux, dt: dt)
+            // Use the UN-clipped bass so kick transients keep their ratio over the
+            // rolling baseline (the soft-clipped f.bass saturates and hides beats).
+            let rawBeat = beat.process(bass: f.bassRaw, flux: f.spectralFlux, dt: dt)
 
             var state = AnimationState()
             state.beat = beatEnv.impulse(rawBeat, dt: dt, decay: 0.16)
@@ -68,7 +70,7 @@ final class AudioProcessor: @unchecked Sendable {
 final class AudioEngine {
     let bus = AnimationStateBus()
     private let processor: AudioProcessor
-    private var capture: SystemAudioCapture?
+    private var capture: (any AudioCapturing)?
     private(set) var isRunning = false
     private(set) var permission: PermissionState = .unknown
     var onPermissionChange: ((PermissionState) -> Void)?
@@ -88,26 +90,46 @@ final class AudioEngine {
     /// sprung at launch.
     func start(promptIfNeeded: Bool = false) async {
         guard !isRunning else { return }
-        // CGPreflight can lag behind the real grant, so we don't hard-gate on it.
-        // Trigger the system prompt only on an explicit user action, then let
-        // ScreenCaptureKit be the real gate: if permission is truly granted the
-        // capture starts even when preflight still reports false.
+        let processor = self.processor
+        let sink: @Sendable ([Float], Double) -> Void = { mono, sr in processor.feed(mono, sampleRate: sr) }
+
+        // Prefer the CoreAudio process tap: lower, steadier latency (beats land on
+        // time) and an audio-only permission. First creation triggers its own TCC
+        // prompt on a signed build; if it can't start, fall back to ScreenCaptureKit.
+        if #available(macOS 14.4, *) {
+            let tap = CoreAudioProcessTapCapture(sink: sink)
+            do {
+                try await tap.start()
+                capture = tap
+                markRunning()
+                return
+            } catch {
+                Log.audio.error("Process tap unavailable (\(error.localizedDescription)); using ScreenCaptureKit")
+            }
+        }
+
+        // Fallback: ScreenCaptureKit (Screen Recording permission).
+        // CGPreflight can lag behind the real grant, so we don't hard-gate on it;
+        // trigger the prompt only on explicit user action and let SCK be the gate.
         if promptIfNeeded && !SystemAudioCapture.permissionGranted() {
             _ = SystemAudioCapture.requestPermission()
         }
-        let processor = self.processor
-        let capture = SystemAudioCapture(sink: { mono, sr in processor.feed(mono, sampleRate: sr) })
+        let sck = SystemAudioCapture(sink: sink)
         do {
-            try await capture.start()
-            self.capture = capture
-            isRunning = true
-            permission = .granted
-            onPermissionChange?(permission)
+            try await sck.start()
+            capture = sck
+            markRunning()
         } catch {
             Log.audio.error("Failed to start capture: \(error.localizedDescription)")
             permission = .denied
             onPermissionChange?(permission)
         }
+    }
+
+    private func markRunning() {
+        isRunning = true
+        permission = .granted
+        onPermissionChange?(permission)
     }
 
     func stop() async {

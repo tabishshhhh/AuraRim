@@ -4,7 +4,9 @@ import Foundation
 /// Instantaneous spectral features for one analysis frame.
 struct AudioFeatures: Sendable, Equatable {
     var rms: Float = 0
-    var bass: Float = 0       // 40–180 Hz normalized
+    var bass: Float = 0       // 40–180 Hz normalized (soft-clipped, for visuals)
+    var bassRaw: Float = 0    // 40–180 Hz raw band energy (for beat detection —
+                              // NOT soft-clipped, so kick transients keep their ratio)
     var mids: Float = 0       // 180–2000 Hz
     var highs: Float = 0      // 2–8 kHz
     var spectralFlux: Float = 0
@@ -91,8 +93,10 @@ final class AudioAnalyzer {
 
         var f = AudioFeatures()
         // Perceptual gain: spectra are small; boost then soft-clip to 0…1.
+        let bassBand = bandEnergy(40, 180)
         f.rms = softClip(rms * 6)
-        f.bass = softClip(bandEnergy(40, 180) * 90)
+        f.bass = softClip(bassBand * 90)
+        f.bassRaw = bassBand                      // unclipped: preserves transient ratio
         f.mids = softClip(bandEnergy(180, 2000) * 120)
         f.highs = softClip(bandEnergy(2000, 8000) * 160)
         f.spectralFlux = flux

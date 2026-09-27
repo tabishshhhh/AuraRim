@@ -40,6 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--show-player") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.player.show() }
         }
+        if CommandLine.arguments.contains("--show-ambient") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in self?.player.showAmbient() }
+        }
         Log.app.info("\(AppBrand.name, privacy: .public) launched")
     }
 

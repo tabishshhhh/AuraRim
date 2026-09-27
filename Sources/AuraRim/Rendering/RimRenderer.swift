@@ -12,6 +12,7 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
     private var lastDrawTime = CACurrentMediaTime()
     private var chasePhase: Float = 0          // integrated clockwise position (loops)
     private var chaseEnergy: Float = 0         // smoothed energy for the chase
+    private var pulse: Float = 0               // smoothed beat pulse (fast attack, soft release)
 
     init(engine: MetalRenderer, config: RimConfig, audioBus: AnimationStateBus) {
         self.engine = engine
@@ -78,7 +79,12 @@ final class RimRenderer: NSObject, MTKViewDelegate, @unchecked Sendable {
         var speed: Float = 0            // loops per second
         switch c.animationMode {
         case .musicSync:
-            u.pulseStrength = min(1, a.beat * 1.05 + a.amplitude * 0.22)
+            // Fast attack so beats hit, soft release so they swell out smoothly
+            // instead of snapping back (smoothness pass).
+            let targetPulse = min(1, a.beat * 1.05 + a.amplitude * 0.22)
+            let rate: Float = targetPulse > pulse ? dt * 24 : dt * 8
+            pulse += (targetPulse - pulse) * min(1, rate)
+            u.pulseStrength = pulse
             u.silence = a.silence
             // Energy from the music drives brightness/tightness and speed.
             targetEnergy = min(1, a.amplitude * 0.8 + a.beat * 0.7 + 0.12 * (1 - a.silence))

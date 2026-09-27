@@ -14,6 +14,7 @@ struct PlayerActions {
     var cycleAnimation: () -> Void = {}
     var toggleRim: () -> Void = {}
     var openSettings: () -> Void = {}
+    var showAmbient: () -> Void = {}
 }
 
 /// The rich floating now-playing window (spec §23). Tap the cover to enlarge it
@@ -199,6 +200,8 @@ struct NowPlayingPlayerView: View {
                               active: state.animationMode == .musicSync, action: actions.cycleAnimation)
             HoverExpandButton(icon: "lightbulb", label: "Rim",
                               active: state.rimEnabled, action: actions.toggleRim)
+            HoverExpandButton(icon: "rectangle.inset.filled.and.person.filled", label: "Lock Screen",
+                              action: actions.showAmbient)
             HoverExpandButton(icon: "gearshape", label: "Settings", action: actions.openSettings)
             HoverExpandButton(icon: "arrow.up.left.and.arrow.down.right", label: "Full Screen",
                               action: actions.toggleExpand)

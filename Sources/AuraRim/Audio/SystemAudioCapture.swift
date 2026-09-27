@@ -10,7 +10,7 @@ import CoreGraphics
 ///
 /// The capture callback runs on a background queue; nothing here touches the
 /// main actor, so `@unchecked Sendable` is safe.
-final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
+final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelegate, AudioCapturing, @unchecked Sendable {
     private var stream: SCStream?
     private let queue = DispatchQueue(label: "com.aurarim.audiocapture")
     private let sink: @Sendable ([Float], Double) -> Void

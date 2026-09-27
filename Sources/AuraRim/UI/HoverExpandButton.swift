@@ -34,7 +34,7 @@ struct HoverExpandButton: View {
         }
         .buttonStyle(.plain)
         .onHover { h in
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.72)) { hover = h }
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { hover = h }
         }
     }
 }

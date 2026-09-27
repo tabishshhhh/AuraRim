@@ -63,16 +63,89 @@ final class NowPlayingController {
         guard appState.lockScreenPlayer,
               let track = appState.currentTrack, track.playbackState == .playing else { return }
         enteredForLock = true
-        appState.playerShowLyrics = true
-        if !isExpanded { isExpanded = true }
-        show()
+        showAmbient()
     }
 
     private func exitLockLyrics() {
         guard enteredForLock else { return }
         enteredForLock = false
-        isExpanded = false
-        hide()
+        hideAmbient()
+    }
+
+    // MARK: Full-screen ambient lyrics
+    //
+    // The beautiful lock/idle display: big word-by-word lyrics with a glowing,
+    // beat-reactive album-colored rim. A separate full-screen panel (kept apart
+    // from the interactive player) so layering on the screensaver layer is
+    // predictable. Also openable on demand to preview it without locking.
+
+    private var ambientPanel: NSPanel?
+    private var ambientHosting: NSHostingController<AmbientLyricsView>?
+    private var escMonitor: Any?
+
+    var isAmbientVisible: Bool { ambientPanel?.isVisible ?? false }
+    func toggleAmbient() { isAmbientVisible ? hideAmbient() : showAmbient() }
+
+    func showAmbient() {
+        if ambientPanel == nil { buildAmbient() }
+        guard let panel = ambientPanel, let screen = NSScreen.main else { return }
+        panel.setFrame(screen.frame, display: true)
+        panel.level = .screenSaver
+        setKeepAwake(true)
+        NSApp.activate(ignoringOtherApps: true)
+        if !panel.isVisible {
+            panel.alphaValue = 0
+            panel.makeKeyAndOrderFront(nil)
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.5
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                panel.animator().alphaValue = 1
+            }
+        } else {
+            panel.makeKeyAndOrderFront(nil)
+        }
+        // Dismiss with Esc when previewing (harmless during a real lock).
+        if escMonitor == nil {
+            escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
+                if e.keyCode == 53 { self?.hideAmbient(); return nil }   // Escape
+                return e
+            }
+        }
+    }
+
+    func hideAmbient() {
+        setKeepAwake(false)
+        if let m = escMonitor { NSEvent.removeMonitor(m); escMonitor = nil }
+        guard let panel = ambientPanel else { return }
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.3
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                panel.orderOut(nil)
+                // Release so its SwiftUI/TimelineView stops rendering entirely
+                // when hidden (otherwise it keeps animating in the background).
+                self.ambientPanel = nil
+                self.ambientHosting = nil
+            }
+        })
+    }
+
+    private func buildAmbient() {
+        let frame = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let panel = PlayerPanel(contentRect: frame,
+                                styleMask: [.borderless, .nonactivatingPanel],
+                                backing: .buffered, defer: false)
+        panel.isOpaque = true
+        panel.backgroundColor = .black
+        panel.hasShadow = false
+        panel.level = .screenSaver
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.isReleasedWhenClosed = false
+        let hosting = NSHostingController(rootView: AmbientLyricsView(state: appState))
+        panel.contentViewController = hosting
+        ambientPanel = panel
+        ambientHosting = hosting
     }
 
     var isVisible: Bool { panel?.isVisible ?? false }
@@ -83,6 +156,7 @@ final class NowPlayingController {
         let firstShow = panel == nil
         if panel == nil { build() }
         guard let panel else { return }
+        if !isExpanded { compactFrame = sanitizedCompact(compactFrame) }  // never open off-screen
         panel.setFrame(isExpanded ? expandedFrame() : compactFrame, display: true)
         // Fullscreen/ambient mode sits above the screensaver; compact floats.
         panel.level = isExpanded ? .screenSaver : .floating
@@ -146,6 +220,7 @@ final class NowPlayingController {
         a.cycleAnimation = { [weak self] in self?.cycleAnimation() }
         a.toggleRim = { [weak self] in self?.appState.rimEnabled.toggle() }
         a.openSettings = { [weak self] in self?.onOpenSettings() }
+        a.showAmbient = { [weak self] in self?.showAmbient() }
         return NowPlayingPlayerView(state: appState, isExpanded: isExpanded, actions: a)
     }
 
@@ -195,13 +270,42 @@ final class NowPlayingController {
     private func restoreFrame() {
         if let s = UserDefaults.standard.string(forKey: frameKey) {
             let r = NSRectFromString(s)
-            if r.width > 100 && r.height > 100 { compactFrame = r; return }
+            if r.width > 100 && r.height > 100 {
+                compactFrame = sanitizedCompact(r)
+                return
+            }
         }
-        // Default: centered on the main screen.
+        compactFrame = defaultCompactFrame()
+    }
+
+    private func defaultCompactFrame() -> CGRect {
         if let vf = NSScreen.main?.visibleFrame {
             let w: CGFloat = 880, h: CGFloat = 560
-            compactFrame = CGRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
+            return CGRect(x: vf.midX - w / 2, y: vf.midY - h / 2, width: w, height: h)
         }
+        return CGRect(x: 120, y: 120, width: 880, height: 560)
+    }
+
+    /// Guarantees the compact player is a sane size and actually visible on some
+    /// screen. A previously-saved frame can be off-screen (e.g. it was on a
+    /// display that's now disconnected) or oversized — in either case the window
+    /// would open where the user can't see it, so we recenter it.
+    private func sanitizedCompact(_ frame: CGRect) -> CGRect {
+        var f = frame
+        if let vf = NSScreen.main?.visibleFrame {
+            f.size.width = min(max(f.width, 400), min(1100, vf.width - 40))
+            f.size.height = min(max(f.height, 320), min(760, vf.height - 40))
+        }
+        // Require a meaningful overlap with a visible screen.
+        let minVisible: CGFloat = 200
+        for s in NSScreen.screens {
+            let inter = s.visibleFrame.intersection(f)
+            if inter.width >= minVisible && inter.height >= minVisible { return f }
+        }
+        // Off-screen → recenter on the main display at the sanitized size.
+        let def = defaultCompactFrame()
+        return CGRect(x: def.midX - f.width / 2, y: def.midY - f.height / 2,
+                      width: f.width, height: f.height)
     }
 }
 

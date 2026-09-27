@@ -23,7 +23,10 @@
     <!-- Menu-bar accessory app: no Dock icon or main window by default (spec §4). -->
     <key>LSUIElement</key>
     <true/>
-    <!-- ScreenCaptureKit system-audio capture requires this usage string (spec §13). -->
+    <!-- CoreAudio process-tap system-audio capture (primary path, macOS 14.4+). -->
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>AuraRim analyzes audio playing on your Mac to animate the rim to the beat. Audio is processed locally and is never recorded or uploaded.</string>
+    <!-- ScreenCaptureKit system-audio capture (fallback path) requires this usage string (spec §13). -->
     <key>NSScreenCaptureUsageDescription</key>
     <string>AuraRim analyzes audio playing on your Mac to animate the rim. Audio is processed locally and is never recorded or uploaded.</string>
     <!-- AppleScript automation for reading the current track/artwork (spec §12). -->

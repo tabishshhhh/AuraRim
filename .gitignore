@@ -1,5 +1,18 @@
+# Build output
 .build/
-*.app
 DerivedData/
+*.app
+*.dmg
+*.zip
+
+# Xcode / SwiftPM local state
+.swiftpm/
+xcuserdata/
+*.xcuserstate
+
+# macOS
 .DS_Store
-*.png
+
+# Render-test / screenshot output
+rim.png
+*.render.png

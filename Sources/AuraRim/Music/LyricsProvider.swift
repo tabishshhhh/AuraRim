@@ -1,28 +1,62 @@
 import Foundation
 
+/// A single timed word within a lyric line (word-level / karaoke timing). Verci's
+/// signature feature: words light exactly when sung. Populated from NetEase YRC.
+struct LyricWord: Sendable, Equatable {
+    let time: TimeInterval       // start, seconds
+    let duration: TimeInterval   // seconds (0 if unknown)
+    let text: String             // keeps original spacing so words concatenate cleanly
+    var end: TimeInterval { time + duration }
+}
+
 struct LyricLine: Identifiable, Sendable, Equatable {
     let id = UUID()
-    let time: TimeInterval?   // nil for plain (unsynced) lyrics
+    let time: TimeInterval?          // nil for plain (unsynced) lyrics
     let text: String
+    var words: [LyricWord]? = nil    // per-word timing when available (YRC)
 }
 
 struct Lyrics: Sendable, Equatable {
     let lines: [LyricLine]
     var isSynced: Bool { lines.contains { $0.time != nil } }
+    /// True when at least one line carries real per-word timing (karaoke-grade).
+    var hasWordTiming: Bool { lines.contains { ($0.words?.isEmpty == false) } }
 }
 
-/// Fetches lyrics from lrclib.net — a free, open, no-auth synced-lyrics API
-/// (spec §90 future extensibility). Only track metadata leaves the device, and
-/// only to look up lyrics.
+/// Resolves lyrics for a track, preferring true word-level timing.
+///
+/// Order of preference (best → good enough):
+///   1. NetEase YRC — real per-word ("karaoke") timings, matching Verci.
+///   2. lrclib synced LRC — line-level timing.
+///   3. Whatever plain text either source has.
 enum LyricsProvider {
+    static func fetch(title: String, artist: String, album: String, duration: TimeInterval) async -> Lyrics? {
+        guard !title.isEmpty else { return nil }
+
+        // 1. Try NetEase first — it's the only free source with word-level YRC.
+        let netease = await NetEaseLyricsProvider.fetch(title: title, artist: artist,
+                                                        album: album, duration: duration)
+        if let netease, netease.hasWordTiming { return netease }
+
+        // 2. Fall back to lrclib for line-level synced lyrics.
+        let lrclib = await fetchLRCLib(title: title, artist: artist, album: album, duration: duration)
+        if let lrclib, lrclib.isSynced { return lrclib }
+
+        // 3. Anything synced from NetEase, else any plain text we found.
+        if let netease, netease.isSynced { return netease }
+        return lrclib ?? netease
+    }
+
+    // MARK: lrclib.net (free, open, no-auth synced-lyrics API)
+
     private struct Response: Decodable {
         let plainLyrics: String?
         let syncedLyrics: String?
         let instrumental: Bool?
     }
 
-    static func fetch(title: String, artist: String, album: String, duration: TimeInterval) async -> Lyrics? {
-        guard !title.isEmpty else { return nil }
+    private static func fetchLRCLib(title: String, artist: String, album: String,
+                                    duration: TimeInterval) async -> Lyrics? {
         var comps = URLComponents(string: "https://lrclib.net/api/get")!
         comps.queryItems = [
             .init(name: "track_name", value: title),
