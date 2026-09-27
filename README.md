@@ -15,9 +15,12 @@ from the album art of whatever's playing.
 ![License](https://img.shields.io/badge/license-MIT-blue)
 [![Stars](https://img.shields.io/github/stars/tabishshhhh/AuraRim?style=social)](https://github.com/tabishshhhh/AuraRim/stargazers)
 
-<!-- Drop a demo GIF here — it's the single biggest thing for traction.
-     Record with ⌘⇧5, convert to GIF (e.g. Gifski), save as docs/demo.gif: -->
-<!-- ![AuraRim demo](docs/demo.gif) -->
+<br>
+
+![AuraRim lock screen — glowing rim and word-by-word lyrics](docs/lockscreen.jpg)
+
+<!-- Even better than a still: drop a demo GIF here. Record with ⌘⇧5, convert to
+     GIF (e.g. Gifski), save as docs/demo.gif, then use: ![demo](docs/demo.gif) -->
 
 **If this looks cool, drop a ⭐ — it genuinely helps.**
 
@@ -59,6 +62,19 @@ from the album art of whatever's playing.
   ambient lyric display with a breathing, beat-pulsing glow rim.
 - macOS does **not** permit drawing on the true secure lock screen (no app can);
   this is the compliant full-screen-on-lock approach, the same one Verci uses.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/lyrics.jpg" alt="Word-by-word synced lyrics"><br><sub><b>Word-by-word lyrics</b> — real per-word timing, with matched SF Symbols</sub></td>
+    <td width="50%"><img src="docs/player.jpg" alt="Now-playing player"><br><sub><b>Now-playing player</b> — album art, transport, live colors</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/player-artwork.jpg" alt="Enlarged album artwork"><br><sub><b>Tap the art</b> to fill the window</sub></td>
+    <td width="50%"><img src="docs/menubar.jpg" alt="Menu-bar control panel"><br><sub><b>Menu-bar control panel</b> — colors, modes, thickness, glow, displays</sub></td>
+  </tr>
+</table>
 
 ## Download
 
